@@ -11,7 +11,9 @@ code_folding: hide
 # Testing
 The following snippet should be used for testing, then removed for the actual runs:
 ```{r For_Testing}
-population = "host"
+population<-c("host","refugee")[1]
+write_csv_output<-c("yes","no")[2]
+day_to_run <- Sys.Date()-1
 ```
 
 # Preamble for setting up the data collection:
@@ -20,24 +22,24 @@ population = "host"
 knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
 
 # Load in libraries ... Surely these are more than we need?
-library(tidyr)
+library(tidyr) # used for pivot_longer
 library(dplyr)
 library(stringr)
-library(ggplot2)
-library(lubridate)
-library(rgdal)
-library(butteR)
-library(kableExtra)
-library(gsubfn)
-library(stringi)
-library(sf)
-library(readxl)
-library(snakecase)
-library(data.table)
+# library(ggplot2)
+library(lubridate) # (for ymd, remove dependence if possible)
+# library(rgdal)
+# library(butteR)
+library(kableExtra) # install.packages("kableExtra")
+# library(gsubfn)
+# library(stringi)
+# library(sf)
+# library(readxl)
+# library(snakecase)
+# library(data.table)
 library(openxlsx)
-library(cleaner)
-library(illuminate)
-library(randomcoloR)
+# library(cleaner)
+# library(illuminate)
+library(randomcoloR) # install.packages("randomcoloR")
 source("functions/Load_Audit.R")
 source("active_path.R")
 ```
@@ -49,10 +51,10 @@ source("active_path.R")
 
 # load kobo tool 
 if(population == "host"){
-  survey_sheet <- read.csv("01_DAP/tool/host/survey_sheet.csv")
-  choice_sheet <- read.csv("01_DAP/tool/host/choice_sheet.csv")
+  survey_sheet <- read.csv("../01_DAP/tool/host/survey_sheet.csv")
+  choice_sheet <- read.csv("../01_DAP/tool/host/choice_sheet.csv")
 
-  survey_sheet$name <- survey_sheet$name %>% str_replace_all("-",".")
+  survey_sheet$name <- gsub(x =  survey_sheet$name, pattern = "-", replacement = ".")
 }
 
 ############# # Why is this here? 
@@ -62,107 +64,163 @@ all_cleaning_log <- list()
 
 # load data
 if(population == "host"){ # why is this a seperate IF statement?
-  hh<-read.csv(hh_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA)) 
-  indv<-read.csv(indv_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA)) 
-  indv2<- read.csv(indv2_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA))
+  hh <- read.csv(hh_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA)) 
+  indv <- read.csv(indv_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA)) 
+  indv_dis_repeat <- read.csv(indv_dis_repeat_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA))
 }
 
-names(indv) <- str_replace_all(names(indv),"X_submission__uuid","X_uuid")
-names(indv2) <- str_replace_all(names(indv2),"X_submission__uuid","X_uuid")
-names(indv2) <- str_replace_all(names(indv2),"ind_number_dis","ind_number")
+# Change some of the column names in the individual datasets: 
+# 1. X_submission__uuid in indv
+names(indv) <- gsub(x =  names(indv), pattern = "X_submission__uuid", replacement = "X_uuid")
+# 2. X_submission__uuid in indv_dis_repeat
+names(indv_dis_repeat) <- gsub(x = names(indv_dis_repeat), pattern ="X_submission__uuid", replacement = "X_uuid",)
+# 3. ind_number_dis in indv_dis_repeat
+names(indv_dis_repeat) <- gsub(x = names(indv_dis_repeat), pattern = "ind_number_dis", replacement = "ind_number")
 
-hh_enumerator_id <- hh %>% select(X_uuid,enumerator_id)
+# Create a variable to contain the X_uuid and the enumerator id:
+hh_enumerator_id <- hh %>% select(X_uuid, enumerator_id)
 
+```
 
-#### REQUIRED ONLY THE FIRST DAY OF DATA COLLECTION ####
-# hh$reported_date <- day_to_run
-# date_log_full<- hh %>% select(X_uuid, reported_date)
-# write.csv(date_log_full,paste0(date_log_path,"date_log.csv"), row.names=FALSE)
-########################################################
+# Create Date Log
 
-date_log <- read.csv(paste0(date_log_path, "date_log.csv"), 
-                     stringsAsFactors = FALSE,
-                     na.strings = c("", " ", NA))
-date_log$reported_date <- ymd(date_log$reported_date)
-hh<-hh %>% dplyr::left_join(date_log, by= "X_uuid")
-hh$reported_date <- if_else(is.na(hh$reported_date), day_to_run, hh$reported_date)
-date_log_full<- hh %>% select(X_uuid,reported_date)
+This section records the dates that the surveys were initially checked by this script. There will be a separate date_log_full file in the Data Analysis outputs folder for both the host and refugee datasets. This uses the hh datasets. It is only writen if 'output' == yes in the "daily_checks.R" script. This will output a date_log_full.csv file that contains all of the dates for each community as well as archiving .csv's that record each instance the date logs are written.   
+```{r Date_log}
+# TODO Change the name of this column to monitored_date so that it is a little clearer.
 
- if(write_csv_output == "yes"){
- write.csv(date_log_full,paste0(date_log_path,str_replace_all(day_to_run,"-","_"),"_date_log.csv"), row.names=FALSE)
- write.csv(date_log_full,paste0(date_log_path,"date_log.csv"), row.names=FALSE)
+# >>> REQUIRED ONLY ON THE FIRST DAY OF DATA COLLECTION
+# hh$reported_date <- day_to_run # I don't think you want this
+# date_log_full <- hh %>% select(X_uuid, reported_date)
+# write.csv(date_log_full, paste0(date_log_path,"date_log_full.csv"), row.names=FALSE)
+  # >>> Ben changed this to:
+  # date_log_full <- data.frame("X_uuid" = hh[,"X_uuid"], "reported_date" = day_to_run)
+  # write.csv(date_log_full, paste0(date_log_path,"date_log_full.csv"), row.names=FALSE)
+  # <<<
+# <<<
+
+# Read in the previous date log:
+date_log <- read.csv(paste0(date_log_path, "date_log_full.csv"), 
+                     stringsAsFactors = FALSE, na.strings = c("", " ", NA))
+
+# Store the monitoring period:
+prev_monitor = max(date_log$reported_date)
+
+# Convert the excel csv date format to ymd:
+# If this has been fiddled with in Excel then the format may not be correct and you will get an error. 
+# TODO Make more robust
+date_log$reported_date <- ymd(date_log$reported_date) 
+
+# Join the dates of surveys that have already been monitored to the input data:
+hh <- hh %>% dplyr::left_join(date_log, by = "X_uuid")
+# Fill any blank reported dates (i.e. new data entries) with today's date
+if(length(is.na(hh$reported_date))>0){hh$reported_date <- if_else(is.na(hh$reported_date), day_to_run, hh$reported_date)}
+
+# Update the date_log_full with the new data and their monitoring dates:
+date_log_full <- hh %>% select(X_uuid, reported_date)
+
+if(write_csv_output == "yes"){
+ write.csv(date_log_full, paste0(date_log_path, gsub(x = day_to_run, pattern = "-", replacement = "_"), "_date_log_full.csv"), row.names=FALSE)
+ write.csv(date_log_full, paste0(date_log_path,"Daily_Achive/date_log.csv"), row.names=FALSE)
 }
 
-############## data log end ########################################
-hh_yes_consent_full_data <- hh %>% filter(informed_consent =="yes")
+```
 
-#hh_day_data <- hh %>% filter(reported_date == day_to_run)   #to run daily data
+### Create daily datasets
 
-hh_yes_consent_daily_data<- hh %>% filter(informed_consent =="yes") %>% filter(reported_date == day_to_run) #to run daily data
-#hh_yes_consent_daily_data<- hh %>% filter(informed_consent =="yes") #to run full data
+These datasets contain all of the data that has not yet been monitored.
 
-hh_day_data_xuid<-hh_yes_consent_daily_data$X_uuid  #to run daily data
+```{r Todays_data}
+# Household:
+  # Create a dataset containing today's data with consent:
+  hh_yes_consent_full_data  <- hh %>% filter(informed_consent =="yes")
+  hh_yes_consent_daily_data <- hh %>% filter(informed_consent =="yes" | reported_date == day_to_run)
+  
+  # TODO: Delete?
+  # Create a dataset that contains all of the hh data with consent:
+  # hh_yes_consent_daily_data <- hh %>% filter(informed_consent =="yes") # to run full data
+  # hh_day_data <- hh %>% filter(reported_date == day_to_run) 
 
-indv_daily_data <- indv %>% filter(X_uuid %in% hh_day_data_xuid)   #to run daily data
-indv2_daily_data<- indv2 %>% filter(ind_number %in% indv_daily_data$ind_number) #to run daily data
+# Individual
+  # Create a vector of the UIDs in today's consented data:
+  hh_day_data_xuid <- hh_yes_consent_daily_data$X_uuid  #to run daily data
+  
+  # Create a dataset that contains all of the individual data with consent:
+  indv_daily_data <- indv %>% filter(X_uuid %in% hh_day_data_xuid)
 
+# Individual Disability Repeat loop:
+  indv_dis_repeat_daily_data <- indv_dis_repeat %>% filter(ind_number %in% indv_daily_data$ind_number)
 ```
 
 ## General Checks
-### Progress Tracking
-Total number of survey so far is **`r nrow(hh)`**.
-```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
-survey_complete_by_reach<- hh  %>%  group_by(reported_date,union_name)%>% summarise(
-  total_number_of_survey= n(),
-  num_survey_reached=sum(reached =="yes",na.rm = T),
-  num_survey_not_reached=sum(reached =="no",na.rm = T),
-  num_survey_no_answwer= sum(reached =="nobody_answering",na.rm = T)
+### 1. Daily Progress Tracking
+Total number of household surveys taken so far for `r population` community is **`r nrow(hh)`**.
+
+The monitoring period is `r paste0(prev_monitor, " to ", Sys.time())`. Any surveys completed after, but on the same day, that the previous data was downloaded will be included here.
+```{r Progress_tracking, eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+# TODO: update this so that it can also do camp name, not just union.
+
+# Create a dataset recording the number of surveys done so far per area and how many consented:
+survey_complete_by_reach <- hh %>%  group_by(reported_date, union_name) %>% summarise(
+  "Total Surveys" = n(),
+  "Surveys reached" = sum(reached == "yes", na.rm = T),
+  "Surveys not reached" = sum(reached == "no", na.rm = T),
+  "Surveys with 'no answer'" = sum(reached == "nobody_answering", na.rm = T),
+# )
+# 
+# survey_complete_by_consent <- hh %>% group_by(reported_date, union_name)%>% summarise(
+#   total_number_of_survey= n(),
+  "Informed consent" = sum(informed_consent =="yes", na.rm = T),
+  "Not consenting" = sum(informed_consent =="no", na.rm = T),
 )
 
-survey_complete_by_consent<- hh %>% group_by(reported_date,union_name)%>% summarise(
-  total_number_of_survey= n(),
-  num_consent_yes=sum(informed_consent =="yes",na.rm = T),
-  num_consent_no=sum(informed_consent =="no",na.rm = T),
-)
 
-overall_complete_by_enumerator<-hh_yes_consent_full_data %>% 
-  group_by(enumerator_id) %>% 
-  summarise(
-overall_number_of_survey = n()
-  )  
+# TODO Delete?
+# complete_by_enumerator_daily <- hh_yes_consent_daily_data %>% group_by(enumerator_id) %>% summarise(daily_number_of_survey = n())  
+# complete_by_enumerator <- left_join(x = overall_complete_by_enumerator, y = complete_by_enumerator_daily)
 
-complete_by_enumerator_daily <-hh_yes_consent_daily_data %>% 
-  group_by(enumerator_id) %>% 
-  summarise(
-daily_number_of_survey = n()
-  )  
-complete_by_enumerator <- overall_complete_by_enumerator %>% left_join(complete_by_enumerator_daily)
+# Create nice tables showing the above outputs:
+kable_styling(kable_input = kable(x = survey_complete_by_reach, longtable = T, booktabs = T, linesep = "", 
+                                  caption= "Total number of surveys reached and consenting per area (camp/union)."),
+              position = "center")
 
+# survey_complete_by_consent %>% kable(longtable = T, booktabs = T, linesep = "",
+#                                      caption= "Total number of surveys per camp/union by response option for “informed_consent”") %>% kable_styling(position = "center")
 
-survey_complete_by_reach %>% kable( longtable = T, booktabs = T, linesep = "",caption= "Total number of surveys per camp/union by response option for “reached”") %>% kable_styling(position = "center")
+# complete_by_enumerator %>% kable(longtable = T, booktabs = T, linesep = "",
+#                                  caption= "Total number of completed survey by enumerator") %>% kable_styling(position = "center")
 
-survey_complete_by_consent %>% kable( longtable = T, booktabs = T, linesep = "",caption= "Total number of surveys per camp/union by response option for “informed_consent”") %>% kable_styling(position = "center")
-
-complete_by_enumerator %>% kable( longtable = T, booktabs = T, linesep = "",caption= "Total number of completed survey by enumerator") %>% kable_styling(position = "center")
-
+### ERROR: `summarise()` regrouping output by 'reported_date' (override with `.groups` argument)
+### Is assumed due to only 2 entries in test data.
 ```
 
 
-## Duplicate ID 
+## 2. Survey verification (Duplicate IDs) 
+Check whether there are duplicated respondent IDs in the consenting data for this monitoring period:
+
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
-check_duplicate_id <- hh_yes_consent_daily_data %>% filter(duplicated(respondent_id)) %>% select("respondent_id") 
+# TODO make this use all data, not just daily.
+# Find duplicated IDs in household data:
+duplicate_id <- hh_yes_consent_daily_data %>% filter(duplicated(respondent_id)) %>% select("respondent_id") 
+duplicate_id <- duplicate_id$respondent_id
+# TODO - Replace with Ben's code?
+duplicate_id = hh_yes_consent_daily_data$respondent_id[duplicated(hh_yes_consent_daily_data$respondent_id)]
 
-duplicate_id <- check_duplicate_id$respondent_id
+# Create a dataset of the basic data for those surveys with duplicated IDs:
+check_duplicate_respondent_id <- hh_yes_consent_daily_data %>% 
+  filter(respondent_id %in% duplicate_id) %>%
+  select(c("reported_date","X_uuid","enumerator_id","respondent_id")) %>%
+  arrange(respondent_id)
 
-check_duplicate_respondent_id <- hh_yes_consent_daily_data %>% filter(
-  respondent_id %in% duplicate_id
-) %>% select(c("reported_date","X_uuid","enumerator_id","respondent_id")) %>% arrange(respondent_id)
+kable_styling(kable_input = kable(x = check_duplicate_respondent_id,
+                                  longtable = T, booktabs = T, linesep = "", 
+                                  caption = "Surveys where respondent_id is not unique"),
+              position = "center")
 
-check_duplicate_respondent_id %>% kable( longtable = T, booktabs = T, linesep = "",caption= "Surveys where respondent_id is not unique") %>% kable_styling(position = "center")
-
-check_duplicate_respondent_id_pi_long<-  check_duplicate_respondent_id %>% pivot_longer(-c("reported_date","X_uuid","enumerator_id"),names_to = "questions",values_to = "old_value") %>% 
+check_duplicate_respondent_id_pi_long <- check_duplicate_respondent_id %>% 
+  pivot_longer(-c("reported_date","X_uuid","enumerator_id"),
+               names_to = "questions", values_to = "old_value") %>% 
   mutate(
   survey_loop = "HH"
 ) %>% group_by(X_uuid) %>% mutate(
@@ -176,247 +234,381 @@ all_cleaning_log[["duplicate_respondent_id"]] <- check_duplicate_respondent_id
 ```
 
 
-=
+## 3. Enumerator and survey duration issues (duration)
 
+```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
+# TODO - this doesn't work and I don't know what it is toing at the start. Fix.
+# audit_yes <- Load_Audit(data = hh, filter.column = "informed_consent",
+#                         path.to.zip = audit_zipfile,
+#                         path.to.unzip = path_unzip,
+#                         copy.zip = TRUE,
+#                         path.to.copy.zip = copy_zip_to,
+#                         delete.unzipped=TRUE
+#                         )
+# 
+# dfl<-list()
+# for (i in 1: length(audit_yes)){
+#   d <- audit_yes[[i]]
+#   
+#   d$node<-gsub("\\[1]","",d$node)
+# 
+#   start_question <- d %>% filter(node==paste0(audit_node,"informed_consent")& !is.na(event)) %>% 
+#     select(end) 
+#   start_question<-min(start_question$end)
+#   end_question<-d %>% filter(node==paste0(audit_node,"end_note") & !is.na(node)) %>% 
+#     select(end)
+#   end_question<-max(end_question$end)
+#   duration_ms<-end_question-start_question
+#   duration_secs<-duration_ms/1000
+#   duration_minutes<- round(duration_secs/60,1)
+#   dfl[[i]]<-data.frame(uuid=names(audit_yes)[i],duration_ms=duration_ms,durations_secs=duration_secs,duration_minutes= duration_minutes)
+# }
+# 
+# duration_df2 <- do.call("rbind", dfl)
+# survey_time <- duration_df2 %>% filter(duration_minutes <25)
+# 
+# survey_time <- survey_time %>% left_join(hh_yes_consent_full_data %>% select(reported_date,X_uuid, enumerator_id ),by = c("uuid"="X_uuid"))
+# survey_time<- survey_time %>% select(reported_date, uuid, enumerator_id, duration_minutes)
+# 
+# duration_df2 <- duration_df2 %>% mutate(
+# duration_minutes = if_else(is.infinite(duration_minutes),NA_real_, duration_minutes))
+# 
+# 
+# mean_survey_time <- mean(duration_df2$duration_minutes,na.rm = T)
+# median_survey_time <- median(duration_df2$duration_minutes,na.rm = T)
+# 
+# paste0("Mean Survey Time- ", mean_survey_time,"<p>")
+# paste0("Median Survey Time- ",median_survey_time,"<p>")
+# 
+# 
+# survey_time %>% kable( longtable = T, booktabs = T, linesep = "",caption= "surveys which are completed in less than 20 min") %>% kable_styling(position = "center")
+# 
+# survey_time<- survey_time %>% filter(reported_date== day_to_run)
+# survey_time<- survey_time %>% rename("X_uuid"="uuid")
+# 
+# survey_time_pi_long<- survey_time %>% pivot_longer(-c("reported_date","X_uuid","enumerator_id"),names_to = "questions",values_to = "old_value") %>% 
+#   mutate(
+#   survey_loop = "HH"
+# ) %>% group_by(X_uuid) %>% mutate(
+#   ref_col = paste0("duration_less_than_25_min",cur_group_id())
+# )
+# 
+# all_cleaning_log[["duration_cl"]] <- survey_time_pi_long
+# 
+# 
+# duration_df3<- duration_df2 %>%  left_join(hh_yes_consent_full_data %>% select(reported_date,X_uuid, enumerator_id ),by = c("uuid"="X_uuid"))
+# 
+# duration_df3<- duration_df3 %>% group_by(enumerator_id) %>% summarise(
+#   mean_duration= mean(duration_minutes, na.rm = TRUE),
+#   median_duration = median(duration_minutes, na.rm=TRUE)
+# )
+# 
+# 
+# duration_df3 %>% kable(longtable = T, booktabs = T, linesep = "",caption= "Duration Statistics of enumerators") %>% kable_styling(position = "center")
 
+# ------------------------------------------------------------------------- 
+# --- Number of surveys completed per enumerator per day:
 
-## Duration
-```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+# Count the number of surveys done by each enumerator
+overall_complete_by_enumerator <- data.frame(
+  # Overall:
+  hh_yes_consent_full_data  %>% group_by(enumerator_id) %>% summarise("Overall number of surveys completed (with consent)" = n()),
+  # In monitoring period
+  hh_yes_consent_daily_data %>% group_by(enumerator_id) %>% summarise("Survey's completed in monitoring period (with consent)" = n()
+  ))
 
-audit_yes<-Load_Audit(data=hh, filter.column = "informed_consent",
-                      path.to.zip = audit_zipfile,
-                      path.to.unzip = path_unzip,
-                      copy.zip = TRUE,
-                      path.to.copy.zip = copy_zip_to,
-                      delete.unzipped=TRUE
-                      )
+# Print table
+kable_styling(kable_input = kable(x = survey_complete_by_reach, longtable = T, booktabs = T, linesep = "", 
+                                  caption= "Total number of surveys reached and consenting per area (camp/union)."),
+              position = "center")
 
+# ------------------------------------------------------------------------- 
+# >> Check if enumerators selected dont_know for more than 15 questions <<
 
-dfl<-list()
-for (i in 1: length(audit_yes)){
-  d<-audit_yes[[i]]
-  
-  d$node<-gsub("\\[1]","",d$node)
+# TODO Ben does not know why Sajnin has so much code and not just a row count... consider later
 
-  start_question <- d %>% filter(node==paste0(audit_node,"informed_consent")& !is.na(event)) %>% 
-    select(end) 
-  start_question<-min(start_question$end)
-  end_question<-d %>% filter(node==paste0(audit_node,"end_note")& !is.na(node)) %>% 
-    select(end)
-  end_question<-max(end_question$end)
-  duration_ms<-end_question-start_question
-  duration_secs<-duration_ms/1000
-  duration_minutes<- round(duration_secs/60,1)
-  dfl[[i]]<-data.frame(uuid=names(audit_yes)[i],duration_ms=duration_ms,durations_secs=duration_secs,duration_minutes= duration_minutes)
-}
+# Find all of the answers that include don't know in the tool answer sheet.
+kobo_dont_know_choices  <- choice_sheet %>% filter(name == "dont_know")
+  # Below was from ST, BS thinks that this finds all answers (e.g. "dont_know_where") and that it shouldn't. Ben's version above.
+  # kobo_dont_know_choices  <- choice_sheet %>% filter(grepl(pattern = "dont_know", x = name))
 
-duration_df2<-do.call("rbind", dfl)
-survey_time <- duration_df2 %>% filter(duration_minutes <25)
+# Find all of the select one question types: 
+kobo_survey_select_one <- survey_sheet %>% filter(grepl(pattern = "select_one", x = type)) 
+# Remove the "select_one" from the type names: 
+kobo_survey_select_one$type <- gsub(x = kobo_survey_select_one$type, pattern = "select_one", replacement = "") %>% trimws()
 
-survey_time <- survey_time %>% left_join(hh_yes_consent_full_data %>% select(reported_date,X_uuid, enumerator_id ),by = c("uuid"="X_uuid"))
-survey_time<- survey_time %>% select(reported_date, uuid, enumerator_id, duration_minutes)
+# Subset the choice sheet to show only the questions/answers that are select_one and dont_know: 
+all_select_one_dont_know <- kobo_survey_select_one %>% filter(type %in% kobo_dont_know_choices$list_name) 
+all_select_one_dont_know <- all_select_one_dont_know$name
 
-duration_df2 <- duration_df2 %>% mutate(
-duration_minutes = if_else(is.infinite(duration_minutes),NA_real_, duration_minutes))
-
-
-mean_survey_time <- mean(duration_df2$duration_minutes,na.rm = T)
-median_survey_time <- median(duration_df2$duration_minutes,na.rm = T)
-
-paste0("Mean Survey Time- ", mean_survey_time,"<p>")
-paste0("Median Survey Time- ",median_survey_time,"<p>")
-
-
-survey_time %>% kable( longtable = T, booktabs = T, linesep = "",caption= "surveys which are completed in less than 20 min") %>% kable_styling(position = "center")
-
-survey_time<- survey_time %>% filter(reported_date== day_to_run)
-survey_time<- survey_time %>% rename("X_uuid"="uuid")
-
-survey_time_pi_long<- survey_time %>% pivot_longer(-c("reported_date","X_uuid","enumerator_id"),names_to = "questions",values_to = "old_value") %>% 
-  mutate(
-  survey_loop = "HH"
-) %>% group_by(X_uuid) %>% mutate(
-  ref_col = paste0("duration_less_than_25_min",cur_group_id())
-)
-
-all_cleaning_log[["duration_cl"]] <- survey_time_pi_long
-
-
-duration_df3<- duration_df2 %>%  left_join(hh_yes_consent_full_data %>% select(reported_date,X_uuid, enumerator_id ),by = c("uuid"="X_uuid"))
-
-duration_df3<- duration_df3 %>% group_by(enumerator_id) %>% summarise(
-  mean_duration= mean(duration_minutes, na.rm = TRUE),
-  median_duration = median(duration_minutes, na.rm=TRUE)
-)
-
-duration_df3 %>% kable( longtable = T, booktabs = T, linesep = "",caption= "Duration Statistics of enumerators") %>% kable_styling(position = "center")
-
-```
-
-
-## Don't know pattern
-
-```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-
-kobo_dont_know_choices  <- choice_sheet %>% filter(grepl("dont_know",name)) 
-
-kobo_survey_select_one <- survey_sheet %>% filter(grepl("select_one",type)) 
-
-kobo_survey_select_one$type <-str_replace_all( kobo_survey_select_one$type,"select_one","") %>% trimws()
-
-all_select_one_dont_know_df <- kobo_survey_select_one %>% filter(type %in% kobo_dont_know_choices$list_name) 
-all_select_one_dont_know <- all_select_one_dont_know_df$name
-
-
-hh_select_one_dont_know_cols<- all_select_one_dont_know[all_select_one_dont_know %in% names(hh)]
+# Find the columns in the three dataset that qualify for the check:
+hh_select_one_dont_know_cols <- all_select_one_dont_know[all_select_one_dont_know %in% names(hh)]
 indv_select_one_dont_know_cols <- all_select_one_dont_know[all_select_one_dont_know %in% names(indv)]
-indv2_select_one_dont_know_cols <- all_select_one_dont_know[all_select_one_dont_know %in% names(indv2)]
+indv_dis_repeat_select_one_dont_know_cols <- all_select_one_dont_know[all_select_one_dont_know %in% names(indv_dis_repeat)]
 
-hh_dnt_know_mltiple_cols_name <- hh %>% select(contains(".dont_know")) %>% names()
-indv_dnt_know_mltiple_cols_name <- indv %>% select(contains(".dont_know")) %>% names()
-indv2_dnt_know_mltiple_cols_name <- indv2 %>% select(contains(".dont_know")) %>% names()
+hh_dont_know_mltiple_cols_name <- hh %>% select(contains(".dont_know")) %>% names()
+indv_dont_know_mltiple_cols_name <- indv %>% select(contains(".dont_know")) %>% names()
+indv_dis_repeat_dont_know_mltiple_cols_name <- indv_dis_repeat %>% select(contains(".dont_know")) %>% names()
 
+# Create a dataset with a column that shows whether there are >15 don't knows for the three datasets:
+# More code than needed here, I don't think we need mutate.
 hh_pattern_dont_know <- hh_yes_consent_daily_data %>% mutate(
-  hh_dont_know_rowsum = rowSums(hh_yes_consent_daily_data[hh_select_one_dont_know_cols] == "dont_know",na.rm = T) +
-                     rowSums(hh_yes_consent_daily_data[hh_dnt_know_mltiple_cols_name],na.rm = T)
-) %>% select(X_uuid,enumerator_id,hh_dont_know_rowsum)
+  "hh_dont_know_rowsum" = 
+    rowSums(hh_yes_consent_daily_data[hh_select_one_dont_know_cols] == "dont_know", na.rm = T) +
+    rowSums(hh_yes_consent_daily_data[hh_dont_know_mltiple_cols_name], na.rm = T)) %>%
+  select("X_uuid", "enumerator_id", "hh_dont_know_rowsum")
 
 indv_pattern_dont_know <- indv_daily_data %>% mutate(
-dont_know_rowsum = rowSums(indv_daily_data[indv_select_one_dont_know_cols] == "dont_know",na.rm = T) +
-                     rowSums(indv_daily_data[indv_dnt_know_mltiple_cols_name],na.rm = T)) %>%
-               dplyr::group_by(X_uuid) %>% dplyr::summarise(indv_dont_know_rowsum = sum(dont_know_rowsum,na.rm = T)
-                      ) %>% select(X_uuid,indv_dont_know_rowsum)
+  "dont_know_rowsum" = 
+    rowSums(indv_daily_data[indv_select_one_dont_know_cols] == "dont_know",na.rm = T) +
+    rowSums(indv_daily_data[indv_dont_know_mltiple_cols_name], na.rm = T)) %>%
+  dplyr::group_by(X_uuid) %>% 
+  dplyr::summarise(indv_dont_know_rowsum = sum(dont_know_rowsum, na.rm = T)) %>%
+  select(X_uuid, indv_dont_know_rowsum)
 
- indv2_pattern_dont_know <- indv2_daily_data %>% mutate(
-   dont_know_rowsum = rowSums(indv2_daily_data[indv2_select_one_dont_know_cols] == "dont_know",na.rm = T) +
-                      rowSums(indv2_daily_data[indv2_dnt_know_mltiple_cols_name],na.rm = T))%>%
-   dplyr::group_by(X_uuid) %>% dplyr::summarise(indv2_dont_know_rowsum = sum(dont_know_rowsum,na.rm = T)
-                      ) %>% select(X_uuid,indv2_dont_know_rowsum)
+indv_dis_repeat_pattern_dont_know <- indv_dis_repeat_daily_data %>% mutate(
+  "dont_know_rowsum" = 
+    rowSums(indv_dis_repeat_daily_data[indv_dis_repeat_select_one_dont_know_cols] == "dont_know",na.rm = T) +
+    rowSums(indv_dis_repeat_daily_data[indv_dis_repeat_dont_know_mltiple_cols_name],na.rm = T))%>%
+  dplyr::group_by(X_uuid) %>% 
+  dplyr::summarise(indv_dis_repeat_dont_know_rowsum = sum(dont_know_rowsum,na.rm = T)) %>% 
+  select(X_uuid, indv_dis_repeat_dont_know_rowsum)
 
- indv_all_pattern_dont_know<- indv_pattern_dont_know %>% left_join(indv2_pattern_dont_know)
+indv_all_pattern_dont_know <- left_join(x = indv_pattern_dont_know, y = indv_dis_repeat_pattern_dont_know)
 
-dont_know_pattern_all <- hh_pattern_dont_know %>% left_join(indv_all_pattern_dont_know) %>% dplyr::mutate(
-   number_of_dont_know = hh_dont_know_rowsum+indv_dont_know_rowsum+ indv2_dont_know_rowsum
- ) %>% select(X_uuid,enumerator_id,number_of_dont_know,everything())
+dont_know_pattern_all <- hh_pattern_dont_know %>% left_join(indv_all_pattern_dont_know) %>% 
+  dplyr::mutate(
+    "number_of_dont_know" = hh_dont_know_rowsum + indv_dont_know_rowsum + indv_dis_repeat_dont_know_rowsum) %>%
+  select(X_uuid, enumerator_id, number_of_dont_know, everything())
 
- dont_know_more_than_15 <- dont_know_pattern_all %>% filter(number_of_dont_know >15)
+dont_know_more_than_15 <- dont_know_pattern_all %>% filter(number_of_dont_know >15)
+colnames(dont_know_more_than_15) = c("X_uuid", "enumerator_id", "Total", "HH",
+                                     "individual_info", "indv_disability_repeat")
 
-dont_know_more_than_15 %>% kable( longtable = T, booktabs = T, linesep = "",caption= "Surveys where more than 15 dont_know answer selected") %>% kable_styling(position = "center")
+kable_styling(kable(x = dont_know_more_than_15, longtable = T, booktabs = T, linesep = "",
+                    caption= "Surveys where more than 15 dont_know answer selected"),
+              position = "center")
+# TODO - make the column names better so that they fit on a table.
+# TODO - check that STs code works once there is more responses
 
 ```
 
 
-### Logical inconsistencies
+## 4. Logical inconsistencies
 
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
-difficulty_colnames<- indv2_daily_data %>% select(contains("difficulty")) %>% colnames()
+# -------------------------------------------------------------------------
+# Clinics: flag if more than 3 selected – add column showing the selected options
 
-individuals_difficulties<- indv2_daily_data %>% mutate(
-  difficulty_col_rowsum= rowSums(indv2_daily_data[difficulty_colnames] =="lot_of_difficulty", na.rm = T)+rowSums(indv2_daily_data[difficulty_colnames] =="cannot_do",na.rm= T)
-)  %>% group_by(X_uuid)%>% dplyr::summarise(indv_difficulty_rs = sum(difficulty_col_rowsum,na.rm = T),
-                                            difficulty_seeing= sum(indv_difficulty_seeing== "lot_of_difficulty"|indv_difficulty_seeing== "cannot_do", na.rm = T),
-                                            difficulty_hearing= sum(indv_difficulty_hearing== "lot_of_difficulty"|indv_difficulty_hearing== "cannot_do", na.rm = T),
-                                            difficulty_walking= sum(indv_difficulty_walking== "lot_of_difficulty"|indv_difficulty_walking== "cannot_do", na.rm = T),
-                                            difficulty_remembering= sum(indv_difficulty_remembering== "lot_of_difficulty"|indv_difficulty_remembering== "cannot_do", na.rm = T),
-                                            difficulty_selfcare= sum(indv_difficulty_selfcare== "lot_of_difficulty"|indv_difficulty_selfcare== "cannot_do", na.rm = T),
-                                            difficulty_communicating= sum(indv_difficulty_communicating== "lot_of_difficulty"|indv_difficulty_communicating== "cannot_do", na.rm = T)
-                                            
-                      )  %>% left_join(hh_yes_consent_daily_data %>% select(reported_date,X_uuid,enumerator_id,hh_size)) %>% 
+
+# -------------------------------------------------------------------------
+# Individuals_dificulties:
+  # Flag if more than 33% of HH members selected – add column indicating number of HH members selected, hh_size, and the values for indv_difficulty_seeing,
+  # indv_difficulty_hearing, indv_difficulty_walking, indv_difficulty_remembering, indv_difficulty_selfcare, indv_difficulty_communicating for each selected individual
+
+# Find the relevant column names:
+difficulty_colnames <- indv_dis_repeat_daily_data %>% select(contains("difficulty")) %>% colnames()
+
+
+individuals_difficulties <- indv_dis_repeat_daily_data %>% mutate(
+  difficulty_col_rowsum = rowSums(indv_dis_repeat_daily_data[difficulty_colnames] == "lot_of_difficulty", na.rm =T) +
+    rowSums(indv_dis_repeat_daily_data[difficulty_colnames] == "cannot_do", na.rm= T)) %>% 
+  group_by(X_uuid) %>% 
+  dplyr::summarise(indv_difficulty_rs = sum(difficulty_col_rowsum,na.rm = T),
+                   difficulty_seeing = sum(indv_difficulty_seeing == "lot_of_difficulty" | indv_difficulty_seeing == "cannot_do", na.rm = T),
+                   difficulty_hearing = sum(indv_difficulty_hearing == "lot_of_difficulty" | indv_difficulty_hearing == "cannot_do", na.rm = T),
+                   difficulty_walking = sum(indv_difficulty_walking == "lot_of_difficulty" | indv_difficulty_walking == "cannot_do", na.rm = T),
+                   difficulty_remembering = sum(indv_difficulty_remembering == "lot_of_difficulty" | indv_difficulty_remembering == "cannot_do", na.rm = T),
+                   difficulty_selfcare = sum(indv_difficulty_selfcare == "lot_of_difficulty" | indv_difficulty_selfcare == "cannot_do", na.rm = T),
+                   difficulty_communicating = sum(indv_difficulty_communicating== "lot_of_difficulty" | indv_difficulty_communicating == "cannot_do", na.rm = T)) %>%
+  left_join(hh_yes_consent_daily_data %>% select(reported_date,X_uuid,enumerator_id,hh_size)) %>% 
   mutate(
-  hh_size_fraction_raw=hh_size/3,
-  hh_size_fraction=  round(hh_size_fraction_raw, digits=0),
-  difficulty_issue= case_when(indv_difficulty_rs>hh_size_fraction~ "yes",
-                              T~ NA_character_)
-  ) %>% filter(difficulty_issue=="yes") %>% select(reported_date,X_uuid,enumerator_id,hh_size,indv_difficulty_rs,difficulty_seeing,difficulty_hearing,difficulty_walking,difficulty_remembering,difficulty_selfcare,difficulty_communicating)
+    "hh_size_fraction_raw" = hh_size/3,
+    "hh_size_fraction" = round(hh_size_fraction_raw, digits=0),
+    "difficulty_issue" = case_when(indv_difficulty_rs>hh_size_fraction~ "yes", T~ NA_character_)) %>% 
+  filter(difficulty_issue=="yes") %>% 
+  select(reported_date, X_uuid, enumerator_id, hh_size, indv_difficulty_rs, difficulty_seeing, difficulty_hearing, 
+         difficulty_walking, difficulty_remembering, difficulty_selfcare, difficulty_communicating)
+
+kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "",
+                    caption= "..."),
+              position = "center")
+
+# -------------------------------------------------------------------------
+# shelter_issues_reason 1
+
+shelter_issues_reason_inconsistency <- hh_yes_consent_daily_data %>% mutate(
+  shelter_issues_reason_inconsistency = case_when((shelter_issues_reason.damage_roof==1 & (leaks_during_rain!="yes"& lack_of_insulation!= "yes"))|
+                                                    (shelter_issues_reason.damage_windows==1 & (leaks_during_rain!="yes"& lack_of_insulation!= "yes"))| 
+                                                    (shelter_issues_reason.structure_unstable==1 & collapse_living_there!= "yes" )~ "yes",
+                                                  T~ NA_character_)) %>% 
+  filter(shelter_issues_reason_inconsistency=="yes") %>% 
+  select(reported_date, X_uuid, enumerator_id, shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there)
+
+kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "",
+                    caption = "..."),
+              position = "center")
+
+# -------------------------------------------------------------------------
+# Improvement
 
 
-shelter_issues_reason_inconsistency<- hh_yes_consent_daily_data %>% mutate(
-  shelter_issues_reason_inconsistency= case_when((shelter_issues_reason.damage_roof==1 & (leaks_during_rain!="yes"& lack_of_insulation!= "yes"))|
-                                                  (shelter_issues_reason.damage_windows==1 & (leaks_during_rain!="yes"& lack_of_insulation!= "yes"))| 
-                                                   (shelter_issues_reason.structure_unstable==1 & collapse_living_there!= "yes" )~ "yes",
-                                                 T~ NA_character_)
-) %>% filter(shelter_issues_reason_inconsistency=="yes") %>% select(reported_date,X_uuid,enumerator_id,shelter_issues_reason, leaks_during_rain,lack_of_insulation,collapse_living_there)
+# -------------------------------------------------------------------------
+# Improvement_reason
 
-########improvement_reason##########
 improvement_reason_inconsistency<- hh_yes_consent_daily_data %>% mutate(
   improvement_reason_inconsistency= case_when(improvement_reason.did_not_receive_any_shelter_support==1 & improvement_reason.sold_materials==1 ~"yes",
                                               T~ NA_character_))%>% filter(improvement_reason_inconsistency=="yes") %>% select(reported_date,X_uuid,enumerator_id,improvement_reason,improvement_reason.did_not_receive_any_shelter_support,improvement_reason.sold_materials)
 
-at_least_one_male_18_59<- indv2_daily_data %>% group_by(X_uuid)
+at_least_one_male_18_59<- indv_dis_repeat_daily_data %>% group_by(X_uuid)
   
-  indv_daily_data %>% group_by(X_uuid) %>% summarise(
-  at_least_one_male_18_59= case_when(ind_gender=="male" & individual_age %in% 18:59 ~ "yes",
-                                     T~NA_character_)
-) 
-improvement_reason_inconsistency2<- hh_yes_consent_daily_data %>% left_join(at_least_one_male_18_59) %>% filter(improvement_reason.no_able_bodied_person==1 &at_least_one_male_18_59== "yes"|
-                                                                                                                  )
+indv_daily_data %>% group_by(X_uuid) %>% 
+  summarise(at_least_one_male_18_59 = case_when(ind_gender=="male" & individual_age %in% 18:59 ~ "yes", T~NA_character_))
 
-######NFI#########
+improvement_reason_inconsistency2 <- hh_yes_consent_daily_data %>% left_join(at_least_one_male_18_59) %>% 
+  filter(improvement_reason.no_able_bodied_person==1 & at_least_one_male_18_59== "yes") # Don't think this is finished
+
+# -------------------------------------------------------------------------
+# Shelter_materials_source
+
+# -------------------------------------------------------------------------
+# Shelter_paid
+
+# -------------------------------------------------------------------------
+# Group_nfi
 
 nfi_cols<- c("blankets","mattresses_mats","kitchen_sets","torches_lights","solar_lamps","batteries","clothing","winter_clothing","shoes","fans","mosquito_nets","bedding_items")
 
 group_nfi_inconsistency<- hh_yes_consent_daily_data %>% mutate(
-  nfi_insufficient= case_when(rowSums(hh_yes_consent_daily_data[nfi_cols]!= "yes", na.rm = T)>8~"yes")
-) %>% filter(nfi_insufficient=="yes") %>% select(reported_date,X_uuid,enumerator_id,nfi_cols)
+  nfi_insufficient= case_when(rowSums(hh_yes_consent_daily_data[nfi_cols]!= "yes", na.rm = T)>8~"yes")) %>%
+  filter(nfi_insufficient=="yes") %>% 
+  select(reported_date, X_uuid, enumerator_id, nfi_cols)
+# -------------------------------------------------------------------------
+# alternative_cooking_fuel
 
-
-############health_distance####
-
+# -------------------------------------------------------------------------
+# health_distance
+# TODO - this may need edits so that it uses all data, not daily.
 health_distance_inconsistensy<- hh_yes_consent_daily_data %>% mutate(
   health_distance_mean= mean(health_distance,na.rm = T),
   health_distance_sd= sd(health_distance, na.rm = T),
   min_allowable_health_distance= health_distance_mean-2*health_distance_sd,
   max_allowable_health_distance= health_distance_mean+2*health_distance_sd,
-  health_distance_inconsistensy= case_when(health_distance>90 | health_distance> max_allowable_health_distance| health_distance< min_allowable_health_distance ~ "yes",
-                                           T~ NA_character_)
-) %>% filter(health_distance_inconsistensy=="yes") %>% select(reported_date,X_uuid,enumerator_id,contains("health_distance"), health_transportation)
+  health_distance_inconsistensy= case_when(health_distance>90 |
+                                             health_distance> max_allowable_health_distance| 
+                                             health_distance< min_allowable_health_distance ~ "yes",
+                                           T~ NA_character_)) %>% 
+  filter(health_distance_inconsistensy=="yes") %>% 
+  select(reported_date, X_uuid, enumerator_id, contains("health_distance"), health_transportation)
+
+
+# ------------------------------------------------------------------------- 
+# health_barriers_not_accessed, health_barriers_accessed, health_barriers_no_need
 
 health_service_inconsistency<- hh_yes_consent_daily_data %>% mutate(
-  health_service_inconsistency= case_when(((health_barriers_accessed.no_functional_facility_nearby==1 | health_barriers_accessed.health_services_are_too_far_away==1|
-                                          health_barriers_not_accessed.no_functional_facility_nearby==1| health_barriers_not_accessed.health_services_are_too_far_away==1|
-                                          health_barriers_no_need.no_functional_facility_nearby==1 | health_barriers_no_need.health_services_are_too_far_away==1)&
-                                            health_distance<30)|((health_barriers_accessed.cannot_afford==1| health_barriers_not_accessed.cannot_afford==1 | health_barriers_no_need.cannot_afford==1)&
-                                             paid_healthcare=="yes") ~ "yes",
-                                          T~ NA_character_)
-) %>% filter(health_service_inconsistency=="yes") %>% select(reported_date,X_uuid,enumerator_id,health_barriers_accessed,health_barriers_not_accessed,health_barriers_no_need,health_distance,health_transportation,paid_healthcare)
+  health_service_inconsistency= case_when(((health_barriers_accessed.no_functional_facility_nearby==1 |
+                                              health_barriers_accessed.health_services_are_too_far_away==1|
+                                              health_barriers_not_accessed.no_functional_facility_nearby==1| 
+                                              health_barriers_not_accessed.health_services_are_too_far_away==1|
+                                              health_barriers_no_need.no_functional_facility_nearby==1 | 
+                                              health_barriers_no_need.health_services_are_too_far_away==1) &
+                                            health_distance<30)|((health_barriers_accessed.cannot_afford==1| 
+                                                                    health_barriers_not_accessed.cannot_afford==1 |
+                                                                    health_barriers_no_need.cannot_afford==1) &
+                                                                   paid_healthcare=="yes") ~ "yes",
+                                          T~ NA_character_)) %>% 
+  filter(health_service_inconsistency=="yes") %>%
+  select(reported_date, X_uuid, enumerator_id, health_barriers_accessed, health_barriers_not_accessed, 
+         health_barriers_no_need, health_distance, health_transportation, paid_healthcare)
 
 
-#############distance_learning_barriers#############
-
-distance_learning_barriers_inconsistency_girls<- hh_yes_consent_daily_data %>% mutate(
-  distance_learning_barriers_inconsistency_girls= case_when((distance_learning_barriers_girls.working_outside_home==1 & child_working_long_hours != "yes")|
-                                                              (distance_learning_barriers_girls.lack_content_older_children==1 & girl_15_18_count==0 & girl_19_24_count==0)|
-                                                              (distance_learning_barriers_girls.lack_content_younger_children==1 & girl_4_5_count==0 & girl_3_0_count==0)|
-                                                              (distance_learning_barriers_girls.lack_light==1 & (solar_lamps=="yes"| living_space_issues.lack_lighting_inside != 1))|
-                                                              (distance_learning_barriers_girls.marriage_pregnancy==1 & (girls_married== "yes"| child_marriage!= "yes"))~"yes"
-                                                            T~ NA_character_)
-) %>% filter(distance_learning_barriers_inconsistency_girls=="yes") %>% select(reported_date,X_uuid,enumerator_id,distance_learning_barriers_girls,girl_15_18_count,girl_19_24_count,girl_3_0_count,girl_4_5_count,solar_lamps,living_space_issues,girls_married,child_marriage)
-
-distance_learning_barriers_inconsistency_boys<- hh_yes_consent_daily_data %>% mutate(
-  distance_learning_barriers_inconsistency_boys= case_when((distance_learning_barriers_boys.working_outside_home==1 & child_working_long_hours != "yes")|
-                                                              (distance_learning_barriers_boys.lack_content_older_children==1 & boy_15_18_count==0 & boy_19_24_count==0)|
-                                                              (distance_learning_barriers_boys.lack_content_younger_children==1 & boy_4_5_count==0 & boy_3_0_count==0)|
-                                                              (distance_learning_barriers_boys.lack_light==1 & (solar_lamps=="yes"| living_space_issues.lack_lighting_inside != 1))|
-                                                              (distance_learning_barriers_boys.marriage_pregnancy==1 & (boys_married== "yes"| child_marriage!= "yes"))~"yes"
-                                                            T~ NA_character_)
-) %>% filter(distance_learning_barriers_inconsistency_boys=="yes") %>% select(reported_date,X_uuid,enumerator_id,distance_learning_barriers_boys,boy_15_18_count,boy_19_24_count,boy_4_5_count,boy_3_0_count,solar_lamps,living_space_issues,boys_married,child_marriage)
+# -------------------------------------------------------------------------
+# group_enrolment & group_distance_learning [CAMPS ONLY]
 
 
-
-################nutrition_barriers_not_accessed###########
-
-nutrition_barriers_not_accessed_cols<- c("nutrition_barriers_not_accessed.already_referred", "nutrition_barriers_not_accessed.not_admitted", "nutrition_barriers_not_accessed.waiting_times", "nutrition_barriers_not_accessed.language_barriers")
-
-nutrition_barriers_not_accessed_inconsistency<- hh_yes_consent_daily_data %>% mutate(
-  nutrition_barriers_not_accessed_inconsistency= case_when(child_taken_no_support_HH_count>0 & rowSums(hh_yes_consent_daily_data[nutrition_barriers_not_accessed_cols]==0,na.rm = T)~"yes",
-                                                           T~NA_character_)
-)%>% filter(nutrition_barriers_not_accessed_inconsistency=="yes") %>% 
-  select(reported_date,X_uuid,enumerator_id,nutrition_barriers_not_accessed_cols,child_taken_no_support_HH_count, child_not_taken_after_referral_HH_count)
+# -------------------------------------------------------------------------
+# group_formal_enrolment, group_informal_enrolment & group_distance_learning [HOST ONLY]
 
 
-########group_livelihood_coping############
+# -------------------------------------------------------------------------
+#group_send_back [CAMPS ONLY]
+
+
+# -------------------------------------------------------------------------
+#group_send_back [HOST ONLY]
+
+
+# -------------------------------------------------------------------------
+# distance_learning_barriers
+
+# TODO - missing inputs
+# distance_learning_barriers_inconsistency_girls <- hh_yes_consent_daily_data %>% mutate(
+#   distance_learning_barriers_inconsistency_girls = case_when((distance_learning_barriers_girls.working_outside_home==1 & 
+#                                                                 child_working_long_hours != "yes")|
+#                                                                (distance_learning_barriers_girls.lack_content_older_children==1 & 
+#                                                                   # girl_15_18_count==0 & girl_19_24_count==0)|
+#                                                                   girl_15_18_count==0) |
+#                                                                (distance_learning_barriers_girls.lack_content_younger_children==1 & 
+#                                                                   # girl_4_5_count==0 & girl_3_0_count==0)|
+#                                                                   girl_4_5_count==0)|
+#                                                                (distance_learning_barriers_girls.lack_light==1 & 
+#                                                                   (solar_lamps=="yes"|
+#                                                                      living_space_issues.lack_lighting_inside != 1))|
+#                                                                (distance_learning_barriers_girls.marriage_pregnancy==1 & 
+#                                                                   (girls_married== "yes"|
+#                                                                      child_marriage!="yes"))
+#                                                              ~"yes", T~ NA_character_)) %>% 
+#   filter(distance_learning_barriers_inconsistency_girls=="yes") %>%
+#   select(reported_date, X_uuid, enumerator_id, distance_learning_barriers_girls, girl_15_18_count,
+#          girl_4_5_count, solar_lamps, living_space_issues, girls_married, child_marriage) # girl_19_24_count, girl_3_0_count
+# 
+# distance_learning_barriers_inconsistency_boys<- hh_yes_consent_daily_data %>% mutate(
+#   distance_learning_barriers_inconsistency_boys = case_when((distance_learning_barriers_boys.working_outside_home==1 & child_working_long_hours != "yes")|
+#                                                               (distance_learning_barriers_boys.lack_content_older_children==1 & boy_15_18_count==0 & boy_19_24_count==0)|
+#                                                               (distance_learning_barriers_boys.lack_content_younger_children==1 & boy_4_5_count==0 & boy_3_0_count==0)|
+#                                                               (distance_learning_barriers_boys.lack_light==1 & (solar_lamps=="yes"|
+#                                                                                                                   living_space_issues.lack_lighting_inside != 1))|
+#                                                               (distance_learning_barriers_boys.marriage_pregnancy==1 & (boys_married== "yes"| child_marriage!=
+#                                                                                                                           "yes"))~"yes", T~ NA_character_)) %>%
+#   filter(distance_learning_barriers_inconsistency_boys=="yes") %>%
+#   select(reported_date,X_uuid,enumerator_id,distance_learning_barriers_boys,boy_15_18_count,
+#          boy_19_24_count,boy_4_5_count,boy_3_0_count,solar_lamps,living_space_issues,boys_married,child_marriage)
+
+
+# -------------------------------------------------------------------------
+# send_back_barriers_girls, send_back_barriers_boys, send_back_challenges_girls, send_back_challenges_boys, return_barriers_girls, return_barriers_boys
+
+# -------------------------------------------------------------------------
+# nutrition_barriers_not_accessed
+
+nutrition_barriers_not_accessed_cols<- c("nutrition_barriers_not_accessed.already_referred", "nutrition_barriers_not_accessed.not_admitted",
+                                         "nutrition_barriers_not_accessed.waiting_times", "nutrition_barriers_not_accessed.language_barriers")
+
+nutrition_barriers_not_accessed_inconsistency <- hh_yes_consent_daily_data %>% mutate(
+  nutrition_barriers_not_accessed_inconsistency = case_when(child_taken_no_support_HH_count>0 &
+                                                              rowSums(hh_yes_consent_daily_data[nutrition_barriers_not_accessed_cols]==0,na.rm = T)
+                                                            ~"yes", T~NA_character_)) %>% 
+  filter(nutrition_barriers_not_accessed_inconsistency=="yes") %>% 
+  select(reported_date, X_uuid, enumerator_id, nutrition_barriers_not_accessed_cols, 
+         child_taken_no_support_HH_count, child_not_taken_after_referral_HH_count)
+
+# -------------------------------------------------------------------------
+# Nutrition 2
+
+# -------------------------------------------------------------------------
+# PLW admitted
+
+# -------------------------------------------------------------------------
+# Folic Acid
+
+# -------------------------------------------------------------------------
+# Food Barriers
+
+
+# -------------------------------------------------------------------------
+# group_livelihood_coping
 
 # group_livelihood_coping_inconsistency<- hh_yes_consent_daily_data %>% mutate(
 #   group_livelihood_coping_inconsistency= case_when(begging=="yes"|
@@ -425,79 +617,124 @@ nutrition_barriers_not_accessed_inconsistency<- hh_yes_consent_daily_data %>% mu
 # )
 # )
 
+# -------------------------------------------------------------------------
+# group_livelihood_coping2
 
-############coping_reason##########
+
+# -------------------------------------------------------------------------
+# coping_reason
 
 coping_reason_inconsistency<- hh_yes_consent_daily_data %>% mutate(
-  coping_reason_inconsistency= case_when((coping_reason.food== 1 & food_expenditure==0)|
-                                           (coping_reason.healthcare== 1 & (paid_healthcare !-"yes"| health_expenditure==0))|
-                                           (coping_reason.education==1 & education_expenditure==0)|
-                                           ((coping_reason.clothing==1 |coping_reason.hh_items==1)& freq_nfi_expenditure==0)|
-                                           (coping_reason.shelte==1 &(hh_yes_consent_daily_data$improvement.dont_know))
-                                         )
-)
+  coping_reason_inconsistency = case_when((coping_reason.food == 1 & food_expenditure==0)|
+                                            (coping_reason.healthcare == 1 & (paid_healthcare !="yes"| health_expenditure==0))|
+                                            (coping_reason.education ==1 & education_expenditure==0)|
+                                            ((coping_reason.clothing ==1 |coping_reason.hh_items==1) & freq_nfi_expenditure==0)|
+                                            (coping_reason.shelter ==1 & (hh_yes_consent_daily_data$improvement.dont_know))
+                                          ~"yes", T~NA_character_))
 
-#######rent_expenditure#########
-rent_expenditure_inconsistency<- hh_yes_consent_daily_data %>% mutate(
-  rent_expenditure_inconsistency= case_when((hh$rent_expenditure>0 & hh$shelter_type))
-)
+# -------------------------------------------------------------------------
+# coping_reason 2
 
 
+# ------------------------------------------------------------------------- 
+# Income_source
 
+# -------------------------------------------------------------------------
+# assistance_amount
+# salaried_work_amount
+# casual_labor_amount
+# casual_labor_days
+# business_amount
+# business_days
+# government_benefits_amount
+# remittances_amount
+# family_friends_amount
+# cfw_amount
+# cfw_days
+# donations_amount
+# sale_assistance_amount
+# other_amount 
 
+# -------------------------------------------------------------------------
+# food_expenditure 
+# rent_expenditure 
+  # TODO - not working
+  # rent_expenditure_inconsistency <- hh_yes_consent_daily_data %>% mutate(
+  #   rent_expenditure_inconsistency = case_when((hh$rent_expenditure>0 & hh$shelter_type)~"yes", T~NA_character_))
 
-###########fuel_expenditure####
+# water_expenditure
+# freq_nfi_expenditure
+# fuel_expenditure
+# transportation_expenditure 
+
+# -------------------------------------------------------------------------
+# fuel_expenditure
 fuel_expenditure_inconsistency <- hh_yes_consent_daily_data %>% mutate(
   fuel_expend_inconsistency= case_when((fuel_expenditure> 0 & (cooking_fuel.buying_lpg_refills != 1 & cooking_fuel.firewood_purchased !=1))|
                                          (fuel_expenditure== 0 & (cooking_fuel.buying_lpg_refills == 1 | cooking_fuel.firewood_purchased ==1))~ "yes",
-                                       T~ NA_character_)
-) %>% filter(fuel_expend_inconsistency=="yes") %>% 
+                                       T~ NA_character_)) %>% 
+  filter(fuel_expend_inconsistency=="yes") %>% 
   select(reported_date,X_uuid,enumerator_id,fuel_expenditure,cooking_fuel.buying_lpg_refills,cooking_fuel.firewood_purchased)
 
+# -------------------------------------------------------------------------
+# shelter_expenditure
+# infreq_nfi_expenditure
+# health_expenditure
+# education_expenditure
+# debt_expenditure 
 
-##########health_expenditure###########
+# ------------------------------------------------------------------------- 
+# health_expenditure
 health_expenditure_inconsistency<- hh_yes_consent_daily_data %>% mutate(
   health_expenditure_inconsistency= case_when((health_expenditure>0 & paid_healthcare=="no")|
                                                (health_expenditure==0 & paid_healthcare=="yes")~"yes",
-                                              T~NA_character_)
-)%>% filter(health_expenditure_inconsistency=="yes") %>% 
+                                              T~NA_character_))%>% 
+  filter(health_expenditure_inconsistency=="yes") %>% 
   select(reported_date,X_uuid,enumerator_id,paid_healthcare)
 
 
-########shelter_expenditure#######
+# -------------------------------------------------------------------------
+# shelter_expenditure
 
-shelter_expenditure_inconsistency<- hh_yes_consent_daily_data %>% mutate(
+shelter_expenditure_inconsistency <- hh_yes_consent_daily_data %>% mutate(
   shelter_expenditure_inconsistency= case_when((shelter_expenditure>0 & shelter_materials_source.purchased==0)|
                                                  (shelter_expenditure==0 &shelter_materials_source.purchased==1)~"yes",
-                                               T~ NA_character_)
-)%>% filter(shelter_expenditure_inconsistency=="yes") %>% 
+                                               T~ NA_character_))%>% 
+  filter(shelter_expenditure_inconsistency=="yes") %>% 
   select(reported_date,X_uuid,enumerator_id,shelter_materials_source)
 
 
 
-###########sanitation_coping#############
+# -------------------------------------------------------------------------
+# sanitation_coping
 
-sanitation_coping_inconsistency<- hh_yes_consent_daily_data %>% mutate(
-  sanitation_coping_inconsistency= case_when((sanitation_coping.no_issue==1 & sanitation_barriers_female.no_problem==0 & sanitation_barriers_male.no_problem==0 )|
-                                               (sanitation_coping.no_issue==0 & (sanitation_barriers_female.no_problem==1 | sanitation_barriers_female.no_problem== NA)& (sanitation_barriers_male.no_problem==1 | sanitation_barriers_male.no_problem==NA))~"yes",
-                                             T~ NA_character_)
-)%>% filter(sanitation_coping_inconsistency=="yes") %>% 
+sanitation_coping_inconsistency <- hh_yes_consent_daily_data %>% mutate(
+  sanitation_coping_inconsistency = case_when((sanitation_coping.no_issue==1 & sanitation_barriers_female.no_problem==0 & sanitation_barriers_male.no_problem==0 )|
+                                               (sanitation_coping.no_issue==0 & (sanitation_barriers_female.no_problem==1 | sanitation_barriers_female.no_problem== NA)& (sanitation_barriers_male.no_problem==1 | sanitation_barriers_male.no_problem==NA))~"yes", T~ NA_character_)) %>% 
+  filter(sanitation_coping_inconsistency=="yes") %>% 
   select(reported_date,X_uuid,enumerator_id,sanitation_coping,sanitation_barriers_male,sanitation_barriers_female)
 
+# -------------------------------------------------------------------------
+# group_water_quantity
+
+# -------------------------------------------------------------------------
+# child_needs
 ```
 
 ### Outliers check
 
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-outliers_check_hh<- outlier_check(df = hh_yes_consent_daily_data,kobo_tool_location = "01_DAP/tool/host/Host_JMSNA_2021_v8.xlsx",cols_to_report = c("X_uuid","enumerator_id"),include_multiple_choices = FALSE)
-
-outliers_check_indv<- outlier_check(df = indv_daily_data,kobo_tool_location = "01_DAP/tool/host/Host_JMSNA_2021_v8.xlsx",cols_to_report = c("X_uuid"),include_multiple_choices = FALSE)
+# TODO - not working
+# outliers_check_hh <- outlier_check(df = hh_yes_consent_daily_data, kobo_tool_location = "../01_DAP/tool/host/Host_JMSNA_2021_v8.xlsx",
+#                                    cols_to_report = c("X_uuid","enumerator_id"))# , include_multiple_choices = FALSE)
+# 
+# outliers_check_indv <- outlier_check(df = indv_daily_data,kobo_tool_location = "01_DAP/tool/host/Host_JMSNA_2021_v8.xlsx",cols_to_report = c("X_uuid"),include_multiple_choices = FALSE)
 
 
 ```
 
 
-### Other response
+## Other response
 
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
@@ -564,17 +801,12 @@ final_cleaning_log$reported_date <- final_cleaning_log$reported_date %>%  lubrid
 final_cleaning_log <- final_cleaning_log %>% filter(reported_date == day_to_run)  #### Output daily cleaning log only
 
 
-###################
+
 # work_book ---------------------------------------------------------------
-
-
 
 final_cleaning_log_for_excel <- final_cleaning_log %>% mutate(
   unique_col = paste0(X_uuid,"_",issues)
 )
-
-
-
 
 
 headerStyle <- createStyle(fontSize = 12, 
@@ -595,7 +827,6 @@ bodyStyle <- createStyle(fontSize = 11,
                          valign = "center",
                          halign = "left",
 )
-
 
 
 wb <- createWorkbook()
@@ -659,7 +890,7 @@ setColWidths(wb, 1, cols = which(names(final_cleaning_log_for_excel)== "unique_c
 ##############################################
 
 
-saveWorkbook(wb, file = paste0(cleaning_log_path,str_replace_all(day_to_run,"-",""),"_","cleaning_log_",population,".xlsx"), overwrite = TRUE)
+saveWorkbook(wb, file = paste0(cleaning_log_path, gsub(x = day_to_run, pattern = "-", replacement = ""), "_", "cleaning_log_", population, ".xlsx"), overwrite = TRUE)
 
 
 

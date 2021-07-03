@@ -1,17 +1,23 @@
-
+# Load Audid Function Script
+# Author: Someone mehedi?
+#
+# This script does...
 
 Load_Audit<-function(data,
-                     path.to.zip,path.to.unzip,
+                     path.to.zip,
+                     path.to.unzip,
                      copy.zip=TRUE,
                      path.to.copy.zip,
-                     filter.column="informed_consent",
-                     filter.on= "yes",
-                     uuid.column="X_uuid",
-                     delete.unzipped=TRUE,
-                     days.ago.reported=0){
-  if(copy.zip==TRUE){
-    file.copy(path.to.zip, path.to.copy.zip)}
+                     filter.column = "informed_consent",
+                     filter.on = "yes",
+                     uuid.column ="X_uuid",
+                     delete.unzipped = TRUE,
+                     days.ago.reported = 0){
 
+  # If desired, copy the zip file to a new location:
+  if(copy.zip==TRUE){file.copy(from = path.to.zip, to = path.to.copy.zip)}
+
+  # Unzip the
   unzip(path.to.zip, exdir = path.to.unzip)
   all_uuid_df<-data.frame(all_uuids=basename(dirname(list.files(path_unzip, recursive=TRUE))),
                           all_paths=dirname(list.files(path_unzip, recursive=TRUE, full.names = TRUE)))
