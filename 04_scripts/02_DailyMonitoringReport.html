@@ -636,7 +636,7 @@ summary {
 
 <h1 class="title toc-ignore"><code>Daily Monitoring Report</code></h1>
 <h4 class="author">BGD GIS DATA UNIT - Ben Smith</h4>
-<h4 class="date">03 July, 2021</h4>
+<h4 class="date">04 July, 2021</h4>
 
 </div>
 
@@ -753,63 +753,63 @@ if(write_csv_output == &quot;yes&quot;){
 <div id="daily-progress-tracking" class="section level3">
 <h3>1. Daily Progress Tracking</h3>
 <p>Total number of household surveys taken so far for host community is <strong>2</strong>.</p>
-The monitoring period is 2021-07-02 to 2021-07-03 19:16:00. Any surveys completed after, but on the same day, that the previous data was downloaded will be included here.
+The monitoring period is 2021-07-02 to 2021-07-04 19:11:53. Any surveys completed after, but on the same day, that the previous data was downloaded will be included here.
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
 Total number of surveys reached and consenting per area (camp/union).
 </caption>
 <thead>
 <tr>
-<th style="text-align:left;">
+<th style="text-align:center;">
 reported_date
 </th>
-<th style="text-align:left;">
+<th style="text-align:center;">
 union_name
 </th>
-<th style="text-align:right;">
+<th style="text-align:center;">
 Total Surveys
 </th>
-<th style="text-align:right;">
+<th style="text-align:center;">
 Surveys reached
 </th>
-<th style="text-align:right;">
+<th style="text-align:center;">
 Surveys not reached
 </th>
-<th style="text-align:right;">
+<th style="text-align:center;">
 Surveys with ‘no answer’
 </th>
-<th style="text-align:right;">
+<th style="text-align:center;">
 Informed consent
 </th>
-<th style="text-align:right;">
+<th style="text-align:center;">
 Not consenting
 </th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align:left;">
+<td style="text-align:center;">
 2021-07-02
 </td>
-<td style="text-align:left;">
+<td style="text-align:center;">
 jalia_palong
 </td>
-<td style="text-align:right;">
+<td style="text-align:center;">
 2
 </td>
-<td style="text-align:right;">
+<td style="text-align:center;">
 2
 </td>
-<td style="text-align:right;">
+<td style="text-align:center;">
 0
 </td>
-<td style="text-align:right;">
+<td style="text-align:center;">
 0
 </td>
-<td style="text-align:right;">
+<td style="text-align:center;">
 2
 </td>
-<td style="text-align:right;">
+<td style="text-align:center;">
 0
 </td>
 </tr>
@@ -826,16 +826,16 @@ Surveys where respondent_id is not unique
 </caption>
 <thead>
 <tr>
-<th style="text-align:left;">
+<th style="text-align:center;">
 reported_date
 </th>
-<th style="text-align:left;">
+<th style="text-align:center;">
 X_uuid
 </th>
-<th style="text-align:right;">
+<th style="text-align:center;">
 enumerator_id
 </th>
-<th style="text-align:right;">
+<th style="text-align:center;">
 respondent_id
 </th>
 </tr>
@@ -848,33 +848,817 @@ respondent_id
 </div>
 <div id="enumerator-and-survey-duration-issues-duration" class="section level2">
 <h2>3. Enumerator and survey duration issues (duration)</h2>
-<div id="logical-inconsistencies" class="section level3">
-<h3>4. Logical inconsistencies</h3>
 </div>
-</div>
-</div>
-<div id="a-tibble-7-x-2" class="section level1">
-<h1>A tibble: 7 x 2</h1>
-</div>
-<div id="groups-x_uuid-2" class="section level1">
-<h1>Groups: X_uuid [2]</h1>
-<p>X_uuid at_least_one_male_18_59 <chr> <chr><br />
-1 0a535d76-f986-4d8f-a718-3fd5a0728a20 <NA><br />
-2 0a535d76-f986-4d8f-a718-3fd5a0728a20 <NA><br />
-3 0a535d76-f986-4d8f-a718-3fd5a0728a20 yes<br />
-4 0a535d76-f986-4d8f-a718-3fd5a0728a20 <NA><br />
-5 61f8d2f5-8fb9-446a-b439-2ff7508284fb <NA><br />
-6 61f8d2f5-8fb9-446a-b439-2ff7508284fb <NA><br />
-7 61f8d2f5-8fb9-446a-b439-2ff7508284fb yes</p>
+<div id="logical-inconsistencies" class="section level2">
+<h2>4. Logical inconsistencies</h2>
+<p>Each row of the data cleaning SOP has a different code chunk below.</p>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+Individuals_dificulties
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported_date
+</th>
+<th style="text-align:center;">
+X_uuid
+</th>
+<th style="text-align:center;">
+enumerator_id
+</th>
+<th style="text-align:center;">
+hh_size
+</th>
+<th style="text-align:center;">
+indv_difficulty_rs
+</th>
+<th style="text-align:center;">
+Seeing
+</th>
+<th style="text-align:center;">
+Hearing
+</th>
+<th style="text-align:center;">
+Walking
+</th>
+<th style="text-align:center;">
+Remembering
+</th>
+<th style="text-align:center;">
+Selfcare
+</th>
+<th style="text-align:center;">
+Communicating
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+shelter_issues_reason 1
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported_date
+</th>
+<th style="text-align:center;">
+X_uuid
+</th>
+<th style="text-align:center;">
+enumerator_id
+</th>
+<th style="text-align:center;">
+shelter_issues_reason
+</th>
+<th style="text-align:center;">
+leaks_during_rain
+</th>
+<th style="text-align:center;">
+lack_of_insulation
+</th>
+<th style="text-align:center;">
+collapse_living_there
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+Improvement_reason: flag if did_not_receive_any_shelter_support &amp; sold_materials selected – add column showing selected options
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+improvement_reason_inconsistency 1
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported date
+</th>
+<th style="text-align:center;">
+X uuid
+</th>
+<th style="text-align:center;">
+enumerator id
+</th>
+<th style="text-align:center;">
+improvement reason
+</th>
+<th style="text-align:center;">
+did not receive any shelter support
+</th>
+<th style="text-align:center;">
+sold materials
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+<p>Improvement_reason 2</p>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+group_nfi_inconsistency
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported_date
+</th>
+<th style="text-align:center;">
+X_uuid
+</th>
+<th style="text-align:center;">
+enumerator_id
+</th>
+<th style="text-align:center;">
+blankets
+</th>
+<th style="text-align:center;">
+mattresses mats
+</th>
+<th style="text-align:center;">
+kitchen sets
+</th>
+<th style="text-align:center;">
+torches lights
+</th>
+<th style="text-align:center;">
+solar lamps
+</th>
+<th style="text-align:center;">
+batteries
+</th>
+<th style="text-align:center;">
+clothing
+</th>
+<th style="text-align:center;">
+winter clothing
+</th>
+<th style="text-align:center;">
+shoes
+</th>
+<th style="text-align:center;">
+fans
+</th>
+<th style="text-align:center;">
+mosquito nets
+</th>
+<th style="text-align:center;">
+bedding items
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center;">
+2021-07-02
+</td>
+<td style="text-align:center;">
+61f8d2f5-8fb9-446a-b439-2ff7508284fb
+</td>
+<td style="text-align:center;">
+22
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+</tr>
+<tr>
+<td style="text-align:center;">
+2021-07-02
+</td>
+<td style="text-align:center;">
+0a535d76-f986-4d8f-a718-3fd5a0728a20
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+no
+</td>
+</tr>
+</tbody>
+</table>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+health_distance_inconsistensy
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported date
+</th>
+<th style="text-align:center;">
+X uuid
+</th>
+<th style="text-align:center;">
+enumerator id
+</th>
+<th style="text-align:center;">
+health distance
+</th>
+<th style="text-align:center;">
+health distance mean
+</th>
+<th style="text-align:center;">
+health distance sd
+</th>
+<th style="text-align:center;">
+min allowable health distance
+</th>
+<th style="text-align:center;">
+max allowable health distance
+</th>
+<th style="text-align:center;">
+health distance inconsistensy
+</th>
+<th style="text-align:center;">
+health transportation
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+health_service_inconsistency
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported date
+</th>
+<th style="text-align:center;">
+X uuid
+</th>
+<th style="text-align:center;">
+enumerator id
+</th>
+<th style="text-align:center;">
+health barriers accessed
+</th>
+<th style="text-align:center;">
+health barriers not accessed
+</th>
+<th style="text-align:center;">
+health barriers no need
+</th>
+<th style="text-align:center;">
+health distance
+</th>
+<th style="text-align:center;">
+health transportation
+</th>
+<th style="text-align:center;">
+paid healthcare
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+nutrition_barriers_not_accessed_inconsistency
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported date
+</th>
+<th style="text-align:center;">
+X uuid
+</th>
+<th style="text-align:center;">
+enumerator id
+</th>
+<th style="text-align:center;">
+nutrition barriers not accessed: already referred
+</th>
+<th style="text-align:center;">
+nutrition barriers not accessed: not admitted
+</th>
+<th style="text-align:center;">
+nutrition barriers not accessed: waiting times
+</th>
+<th style="text-align:center;">
+nutrition barriers not accessed: language barriers
+</th>
+<th style="text-align:center;">
+child taken no support HH count
+</th>
+<th style="text-align:center;">
+child not taken after referral HH count
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+coping_reason_inconsistency_2
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported_date
+</th>
+<th style="text-align:center;">
+X_uuid
+</th>
+<th style="text-align:center;">
+enumerator_id
+</th>
+<th style="text-align:center;">
+coping_reason
+</th>
+<th style="text-align:center;">
+coping_reason_inconsistency_2
+</th>
+<th style="text-align:center;">
+food_expenditure
+</th>
+<th style="text-align:center;">
+health_expenditure
+</th>
+<th style="text-align:center;">
+paid_healthcare
+</th>
+<th style="text-align:center;">
+education_expenditure
+</th>
+<th style="text-align:center;">
+infreq_nfi_expenditure
+</th>
+<th style="text-align:center;">
+rent_expenditure
+</th>
+<th style="text-align:center;">
+shelter_expenditure
+</th>
+<th style="text-align:center;">
+improvement
+</th>
+<th style="text-align:center;">
+fuel_expenditure
+</th>
+<th style="text-align:center;">
+freq_nfi_expenditure
+</th>
+<th style="text-align:center;">
+water_coping
+</th>
+<th style="text-align:center;">
+water_expenditure
+</th>
+<th style="text-align:center;">
+distance_learning_girls_4_5
+</th>
+<th style="text-align:center;">
+distance_learning_girls_6_14
+</th>
+<th style="text-align:center;">
+distance_learning_girls_15_18
+</th>
+<th style="text-align:center;">
+distance_learning_boys_4_5
+</th>
+<th style="text-align:center;">
+distance_learning_boys_6_14
+</th>
+<th style="text-align:center;">
+distance_learning_boys_15_18
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+fuel_expenditure_inconsistency
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported date
+</th>
+<th style="text-align:center;">
+X uuid
+</th>
+<th style="text-align:center;">
+enumerator id
+</th>
+<th style="text-align:center;">
+fuel expenditure
+</th>
+<th style="text-align:center;">
+cooking fuel: buying lpg refills
+</th>
+<th style="text-align:center;">
+cooking fuel: firewood purchased
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+health_expenditure_inconsistency
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported_date
+</th>
+<th style="text-align:center;">
+X_uuid
+</th>
+<th style="text-align:center;">
+enumerator_id
+</th>
+<th style="text-align:center;">
+paid_healthcare
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+shelter_expenditure_inconsistency
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported_date
+</th>
+<th style="text-align:center;">
+X_uuid
+</th>
+<th style="text-align:center;">
+enumerator_id
+</th>
+<th style="text-align:center;">
+shelter_materials_source
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+sanitation_coping_inconsistency
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported_date
+</th>
+<th style="text-align:center;">
+X_uuid
+</th>
+<th style="text-align:center;">
+enumerator_id
+</th>
+<th style="text-align:center;">
+sanitation_coping
+</th>
+<th style="text-align:center;">
+sanitation_barriers_male
+</th>
+<th style="text-align:center;">
+sanitation_barriers_female
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
 <div id="outliers-check" class="section level3">
 <h3>Outliers check</h3>
 </div>
-<div id="other-response" class="section level3">
-<h3>Other response</h3>
+</div>
+<div id="other-response" class="section level2">
+<h2>Other response</h2>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+‘Other’ answers
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported_date
+</th>
+<th style="text-align:center;">
+X_uuid
+</th>
+<th style="text-align:center;">
+survey_loop
+</th>
+<th style="text-align:center;">
+repeat_instance_name
+</th>
+<th style="text-align:center;">
+enumerator_id
+</th>
+<th style="text-align:center;">
+questions
+</th>
+<th style="text-align:center;">
+old_value
+</th>
+<th style="text-align:center;">
+ref_col
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center;">
+2021-07-02
+</td>
+<td style="text-align:center;">
+61f8d2f5-8fb9-446a-b439-2ff7508284fb
+</td>
+<td style="text-align:center;">
+HH
+</td>
+<td style="text-align:center;">
+NA
+</td>
+<td style="text-align:center;">
+22
+</td>
+<td style="text-align:center;">
+enough_water_other
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+Other_response_26
+</td>
+</tr>
+<tr>
+<td style="text-align:center;">
+2021-07-02
+</td>
+<td style="text-align:center;">
+61f8d2f5-8fb9-446a-b439-2ff7508284fb
+</td>
+<td style="text-align:center;">
+HH
+</td>
+<td style="text-align:center;">
+NA
+</td>
+<td style="text-align:center;">
+22
+</td>
+<td style="text-align:center;">
+water_coping.less_preferred_other
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+Other_response_27
+</td>
+</tr>
+<tr>
+<td style="text-align:center;">
+2021-07-02
+</td>
+<td style="text-align:center;">
+61f8d2f5-8fb9-446a-b439-2ff7508284fb
+</td>
+<td style="text-align:center;">
+HH
+</td>
+<td style="text-align:center;">
+NA
+</td>
+<td style="text-align:center;">
+22
+</td>
+<td style="text-align:center;">
+water_coping.less_use_other
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+Other_response_28
+</td>
+</tr>
+<tr>
+<td style="text-align:center;">
+2021-07-02
+</td>
+<td style="text-align:center;">
+0a535d76-f986-4d8f-a718-3fd5a0728a20
+</td>
+<td style="text-align:center;">
+HH
+</td>
+<td style="text-align:center;">
+NA
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+other_information
+</td>
+<td style="text-align:center;">
+??
+</td>
+<td style="text-align:center;">
+Other_response_57
+</td>
+</tr>
+<tr>
+<td style="text-align:center;">
+2021-07-02
+</td>
+<td style="text-align:center;">
+0a535d76-f986-4d8f-a718-3fd5a0728a20
+</td>
+<td style="text-align:center;">
+HH
+</td>
+<td style="text-align:center;">
+NA
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+enough_water_other
+</td>
+<td style="text-align:center;">
+yes
+</td>
+<td style="text-align:center;">
+Other_response_81
+</td>
+</tr>
+<tr>
+<td style="text-align:center;">
+2021-07-02
+</td>
+<td style="text-align:center;">
+0a535d76-f986-4d8f-a718-3fd5a0728a20
+</td>
+<td style="text-align:center;">
+HH
+</td>
+<td style="text-align:center;">
+NA
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+water_coping.less_preferred_other
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+Other_response_82
+</td>
+</tr>
+<tr>
+<td style="text-align:center;">
+2021-07-02
+</td>
+<td style="text-align:center;">
+0a535d76-f986-4d8f-a718-3fd5a0728a20
+</td>
+<td style="text-align:center;">
+HH
+</td>
+<td style="text-align:center;">
+NA
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+water_coping.less_use_other
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+Other_response_83
+</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="cleaning-log" class="section level2">
 <h2>cleaning log</h2>
-<p>cleaning log will be provided in seperate excel file</p>
+<p>cleaning log will be provided in separate excel file. This is currently not being written as deemed unneccesary for now.</p>
 </div>
 </div>
 

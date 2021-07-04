@@ -180,14 +180,14 @@ survey_complete_by_reach <- hh %>%  group_by(reported_date, union_name) %>% summ
 # complete_by_enumerator <- left_join(x = overall_complete_by_enumerator, y = complete_by_enumerator_daily)
 
 # Create nice tables showing the above outputs:
-kable_styling(kable_input = kable(x = survey_complete_by_reach, longtable = T, booktabs = T, linesep = "", 
+kable_styling(kable_input = kable(x = survey_complete_by_reach, longtable = T, booktabs = T, linesep = "", align = "c", 
                                   caption= "Total number of surveys reached and consenting per area (camp/union)."),
               position = "center")
 
-# survey_complete_by_consent %>% kable(longtable = T, booktabs = T, linesep = "",
+# survey_complete_by_consent %>% kable(longtable = T, booktabs = T, linesep = "", align = "c",
 #                                      caption= "Total number of surveys per camp/union by response option for “informed_consent”") %>% kable_styling(position = "center")
 
-# complete_by_enumerator %>% kable(longtable = T, booktabs = T, linesep = "",
+# complete_by_enumerator %>% kable(longtable = T, booktabs = T, linesep = "", align = "c",
 #                                  caption= "Total number of completed survey by enumerator") %>% kable_styling(position = "center")
 
 ### ERROR: `summarise()` regrouping output by 'reported_date' (override with `.groups` argument)
@@ -214,7 +214,7 @@ check_duplicate_respondent_id <- hh_yes_consent_daily_data %>%
   arrange(respondent_id)
 
 kable_styling(kable_input = kable(x = check_duplicate_respondent_id,
-                                  longtable = T, booktabs = T, linesep = "", 
+                                  longtable = T, booktabs = T, linesep = "", align = "c", 
                                   caption = "Surveys where respondent_id is not unique"),
               position = "center")
 
@@ -238,14 +238,18 @@ all_cleaning_log[["duplicate_respondent_id"]] <- check_duplicate_respondent_id
 
 ```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
-# TODO - this doesn't work and I don't know what it is toing at the start. Fix.
+# TODO - this doesn't work and I don't know what it is doing at the start. Fix.
+
+# This reads in the audit file: (Audit files records the time spent for each question, start and end time in milliseconds)
+# We time from the end of informed consent.
+# Cara wants to get times for each group. There are over 60, so perhaps it would be better to just use a some. 
+
 # audit_yes <- Load_Audit(data = hh, filter.column = "informed_consent",
 #                         path.to.zip = audit_zipfile,
 #                         path.to.unzip = path_unzip,
 #                         copy.zip = TRUE,
 #                         path.to.copy.zip = copy_zip_to,
-#                         delete.unzipped=TRUE
-#                         )
+#                         delete.unzipped=TRUE)
 # 
 # dfl<-list()
 # for (i in 1: length(audit_yes)){
@@ -282,7 +286,7 @@ all_cleaning_log[["duplicate_respondent_id"]] <- check_duplicate_respondent_id
 # paste0("Median Survey Time- ",median_survey_time,"<p>")
 # 
 # 
-# survey_time %>% kable( longtable = T, booktabs = T, linesep = "",caption= "surveys which are completed in less than 20 min") %>% kable_styling(position = "center")
+# survey_time %>% kable( longtable = T, booktabs = T, linesep = "", align = "c",caption= "surveys which are completed in less than 20 min") %>% kable_styling(position = "center")
 # 
 # survey_time<- survey_time %>% filter(reported_date== day_to_run)
 # survey_time<- survey_time %>% rename("X_uuid"="uuid")
@@ -305,7 +309,7 @@ all_cleaning_log[["duplicate_respondent_id"]] <- check_duplicate_respondent_id
 # )
 # 
 # 
-# duration_df3 %>% kable(longtable = T, booktabs = T, linesep = "",caption= "Duration Statistics of enumerators") %>% kable_styling(position = "center")
+# duration_df3 %>% kable(longtable = T, booktabs = T, linesep = "", align = "c",caption= "Duration Statistics of enumerators") %>% kable_styling(position = "center")
 
 # ------------------------------------------------------------------------- 
 # --- Number of surveys completed per enumerator per day:
@@ -319,7 +323,7 @@ overall_complete_by_enumerator <- data.frame(
   ))
 
 # Print table
-kable_styling(kable_input = kable(x = survey_complete_by_reach, longtable = T, booktabs = T, linesep = "", 
+kable_styling(kable_input = kable(x = survey_complete_by_reach, longtable = T, booktabs = T, linesep = "", align = "c", 
                                   caption= "Total number of surveys reached and consenting per area (camp/union)."),
               position = "center")
 
@@ -386,7 +390,7 @@ dont_know_more_than_15 <- dont_know_pattern_all %>% filter(number_of_dont_know >
 colnames(dont_know_more_than_15) = c("X_uuid", "enumerator_id", "Total", "HH",
                                      "individual_info", "indv_disability_repeat")
 
-kable_styling(kable(x = dont_know_more_than_15, longtable = T, booktabs = T, linesep = "",
+kable_styling(kable(x = dont_know_more_than_15, longtable = T, booktabs = T, linesep = "", align = "c",
                     caption= "Surveys where more than 15 dont_know answer selected"),
               position = "center")
 # TODO - make the column names better so that they fit on a table.
@@ -397,14 +401,17 @@ kable_styling(kable(x = dont_know_more_than_15, longtable = T, booktabs = T, lin
 
 ## 4. Logical inconsistencies
 
-```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+Each row of the data cleaning SOP has a different code chunk below.
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # Clinics: flag if more than 3 selected – add column showing the selected options
 
+```
 
-# -------------------------------------------------------------------------
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # Individuals_dificulties:
+# -------------------------------------------------------------------------
   # Flag if more than 33% of HH members selected – add column indicating number of HH members selected, hh_size, and the values for indv_difficulty_seeing,
   # indv_difficulty_hearing, indv_difficulty_walking, indv_difficulty_remembering, indv_difficulty_selfcare, indv_difficulty_communicating for each selected individual
 
@@ -417,25 +424,27 @@ individuals_difficulties <- indv_dis_repeat_daily_data %>% mutate(
     rowSums(indv_dis_repeat_daily_data[difficulty_colnames] == "cannot_do", na.rm= T)) %>% 
   group_by(X_uuid) %>% 
   dplyr::summarise(indv_difficulty_rs = sum(difficulty_col_rowsum,na.rm = T),
-                   difficulty_seeing = sum(indv_difficulty_seeing == "lot_of_difficulty" | indv_difficulty_seeing == "cannot_do", na.rm = T),
-                   difficulty_hearing = sum(indv_difficulty_hearing == "lot_of_difficulty" | indv_difficulty_hearing == "cannot_do", na.rm = T),
-                   difficulty_walking = sum(indv_difficulty_walking == "lot_of_difficulty" | indv_difficulty_walking == "cannot_do", na.rm = T),
-                   difficulty_remembering = sum(indv_difficulty_remembering == "lot_of_difficulty" | indv_difficulty_remembering == "cannot_do", na.rm = T),
-                   difficulty_selfcare = sum(indv_difficulty_selfcare == "lot_of_difficulty" | indv_difficulty_selfcare == "cannot_do", na.rm = T),
-                   difficulty_communicating = sum(indv_difficulty_communicating== "lot_of_difficulty" | indv_difficulty_communicating == "cannot_do", na.rm = T)) %>%
+                   Seeing = sum(indv_difficulty_seeing == "lot_of_difficulty" | indv_difficulty_seeing == "cannot_do", na.rm = T),
+                   Hearing = sum(indv_difficulty_hearing == "lot_of_difficulty" | indv_difficulty_hearing == "cannot_do", na.rm = T),
+                   Walking = sum(indv_difficulty_walking == "lot_of_difficulty" | indv_difficulty_walking == "cannot_do", na.rm = T),
+                   Remembering = sum(indv_difficulty_remembering == "lot_of_difficulty" | indv_difficulty_remembering == "cannot_do", na.rm = T),
+                   Selfcare = sum(indv_difficulty_selfcare == "lot_of_difficulty" | indv_difficulty_selfcare == "cannot_do", na.rm = T),
+                   Communicating = sum(indv_difficulty_communicating== "lot_of_difficulty" | indv_difficulty_communicating == "cannot_do", na.rm = T)) %>%
   left_join(hh_yes_consent_daily_data %>% select(reported_date,X_uuid,enumerator_id,hh_size)) %>% 
   mutate(
     "hh_size_fraction_raw" = hh_size/3,
     "hh_size_fraction" = round(hh_size_fraction_raw, digits=0),
     "difficulty_issue" = case_when(indv_difficulty_rs>hh_size_fraction~ "yes", T~ NA_character_)) %>% 
   filter(difficulty_issue=="yes") %>% 
-  select(reported_date, X_uuid, enumerator_id, hh_size, indv_difficulty_rs, difficulty_seeing, difficulty_hearing, 
-         difficulty_walking, difficulty_remembering, difficulty_selfcare, difficulty_communicating)
+  select(reported_date, X_uuid, enumerator_id, hh_size, indv_difficulty_rs, 
+         Seeing, Hearing, Walking, Remembering, Selfcare, Communicating)
 
-kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "",
-                    caption= "..."),
+kable_styling(kable(x = individuals_difficulties, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption= "Individuals_dificulties"),
               position = "center")
+```
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # shelter_issues_reason 1
 
@@ -447,63 +456,133 @@ shelter_issues_reason_inconsistency <- hh_yes_consent_daily_data %>% mutate(
   filter(shelter_issues_reason_inconsistency=="yes") %>% 
   select(reported_date, X_uuid, enumerator_id, shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there)
 
-kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "",
-                    caption = "..."),
+kable_styling(kable(x = shelter_issues_reason_inconsistency, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "shelter_issues_reason 1"),
               position = "center")
+```
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
-# Improvement
+# Improvement: flag if more than 5 selected – add column showing all selected options
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
 
-# -------------------------------------------------------------------------
+Improvement_reason: flag if did_not_receive_any_shelter_support & sold_materials selected – add column showing selected options
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # Improvement_reason
 
-improvement_reason_inconsistency<- hh_yes_consent_daily_data %>% mutate(
-  improvement_reason_inconsistency= case_when(improvement_reason.did_not_receive_any_shelter_support==1 & improvement_reason.sold_materials==1 ~"yes",
-                                              T~ NA_character_))%>% filter(improvement_reason_inconsistency=="yes") %>% select(reported_date,X_uuid,enumerator_id,improvement_reason,improvement_reason.did_not_receive_any_shelter_support,improvement_reason.sold_materials)
+improvement_reason_inconsistency <- hh_yes_consent_daily_data %>% mutate(
+  improvement_reason_inconsistency = case_when(improvement_reason.did_not_receive_any_shelter_support==1 & improvement_reason.sold_materials==1 ~"yes",
+                                               T~ NA_character_)) %>% 
+  filter(improvement_reason_inconsistency=="yes") %>%
+  select(reported_date, X_uuid, enumerator_id, improvement_reason, improvement_reason.did_not_receive_any_shelter_support, improvement_reason.sold_materials)
 
-at_least_one_male_18_59<- indv_dis_repeat_daily_data %>% group_by(X_uuid)
-  
-indv_daily_data %>% group_by(X_uuid) %>% 
+colnames(improvement_reason_inconsistency) = c("reported date", "X uuid", "enumerator id", "improvement reason", "did not receive any shelter support", "sold materials")
+
+kable_styling(kable(x = improvement_reason_inconsistency, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "improvement_reason_inconsistency 1"),
+              position = "center")
+```
+
+Improvement_reason 2
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+# -------------------------------------------------------------------------
+# Improvement_reason 2
+# TODO - I don't think this shows anything yet.
+
+at_least_one_male_18_59 <- indv_dis_repeat_daily_data %>% group_by(X_uuid)
+
+# Find able bodied people (males 18-59) in indv data:
+at_least_one_male_18_59 = indv_daily_data %>% group_by(X_uuid) %>% 
   summarise(at_least_one_male_18_59 = case_when(ind_gender=="male" & individual_age %in% 18:59 ~ "yes", T~NA_character_))
 
 improvement_reason_inconsistency2 <- hh_yes_consent_daily_data %>% left_join(at_least_one_male_18_59) %>% 
   filter(improvement_reason.no_able_bodied_person==1 & at_least_one_male_18_59== "yes") # Don't think this is finished
 
+# kable_styling(kable(x = improvement_reason_inconsistency2, longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "flag if no_able_bodied_person & at least one male person in the household aged 18-59 that is not selected under individuals_difficulties"),
+#               position = "center")
+
+# ----
+
+
+
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # Shelter_materials_source
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # Shelter_paid
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # Group_nfi
+nfi_cols <- c("blankets", "mattresses_mats", "kitchen_sets", "torches_lights", "solar_lamps", "batteries", 
+              "clothing", "winter_clothing", "shoes", "fans","mosquito_nets", "bedding_items")
 
-nfi_cols<- c("blankets","mattresses_mats","kitchen_sets","torches_lights","solar_lamps","batteries","clothing","winter_clothing","shoes","fans","mosquito_nets","bedding_items")
-
-group_nfi_inconsistency<- hh_yes_consent_daily_data %>% mutate(
-  nfi_insufficient= case_when(rowSums(hh_yes_consent_daily_data[nfi_cols]!= "yes", na.rm = T)>8~"yes")) %>%
+group_nfi_inconsistency <- hh_yes_consent_daily_data %>% mutate(
+  nfi_insufficient = case_when(rowSums(hh_yes_consent_daily_data[nfi_cols]!= "yes", na.rm = T) >8~"yes")) %>%
   filter(nfi_insufficient=="yes") %>% 
   select(reported_date, X_uuid, enumerator_id, nfi_cols)
+
+colnames(group_nfi_inconsistency) <- c("reported_date", "X_uuid", "enumerator_id", "blankets", "mattresses mats", "kitchen sets", "torches lights",
+                                       "solar lamps", "batteries", "clothing", "winter clothing", "shoes", "fans","mosquito nets", "bedding items")
+
+kable_styling(kable(x = group_nfi_inconsistency, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "group_nfi_inconsistency"),
+              position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # alternative_cooking_fuel
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # health_distance
 # TODO - this may need edits so that it uses all data, not daily.
-health_distance_inconsistensy<- hh_yes_consent_daily_data %>% mutate(
-  health_distance_mean= mean(health_distance,na.rm = T),
-  health_distance_sd= sd(health_distance, na.rm = T),
-  min_allowable_health_distance= health_distance_mean-2*health_distance_sd,
-  max_allowable_health_distance= health_distance_mean+2*health_distance_sd,
-  health_distance_inconsistensy= case_when(health_distance>90 |
+health_distance_inconsistensy <- hh_yes_consent_daily_data %>% mutate(
+  health_distance_mean = mean(health_distance,na.rm = T),
+  health_distance_sd = sd(health_distance, na.rm = T),
+  min_allowable_health_distance = health_distance_mean - 2*health_distance_sd,
+  max_allowable_health_distance = health_distance_mean + 2*health_distance_sd,
+  health_distance_inconsistensy = case_when(health_distance>90 |
                                              health_distance> max_allowable_health_distance| 
                                              health_distance< min_allowable_health_distance ~ "yes",
                                            T~ NA_character_)) %>% 
   filter(health_distance_inconsistensy=="yes") %>% 
   select(reported_date, X_uuid, enumerator_id, contains("health_distance"), health_transportation)
 
+colnames(health_distance_inconsistensy) = c("reported date", "X uuid", "enumerator id", "health distance", "health distance mean", 
+                                            "health distance sd", "min allowable health distance", "max allowable health distance",
+                                            "health distance inconsistensy", "health transportation")
 
+kable_styling(kable(x = health_distance_inconsistensy, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "health_distance_inconsistensy"),
+              position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # ------------------------------------------------------------------------- 
 # health_barriers_not_accessed, health_barriers_accessed, health_barriers_no_need
 
@@ -523,23 +602,51 @@ health_service_inconsistency<- hh_yes_consent_daily_data %>% mutate(
   select(reported_date, X_uuid, enumerator_id, health_barriers_accessed, health_barriers_not_accessed, 
          health_barriers_no_need, health_distance, health_transportation, paid_healthcare)
 
+colnames(health_service_inconsistency) = c("reported date", "X uuid", "enumerator id", "health barriers accessed", "health barriers not accessed",
+                                           "health barriers no need", "health distance", "health transportation", "paid healthcare")
 
+kable_styling(kable(x = health_service_inconsistency, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "health_service_inconsistency"),
+              position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # group_enrolment & group_distance_learning [CAMPS ONLY]
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # group_formal_enrolment, group_informal_enrolment & group_distance_learning [HOST ONLY]
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 #group_send_back [CAMPS ONLY]
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 #group_send_back [HOST ONLY]
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # distance_learning_barriers
 
@@ -576,10 +683,21 @@ health_service_inconsistency<- hh_yes_consent_daily_data %>% mutate(
 #   select(reported_date,X_uuid,enumerator_id,distance_learning_barriers_boys,boy_15_18_count,
 #          boy_19_24_count,boy_4_5_count,boy_3_0_count,solar_lamps,living_space_issues,boys_married,child_marriage)
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # send_back_barriers_girls, send_back_barriers_boys, send_back_challenges_girls, send_back_challenges_boys, return_barriers_girls, return_barriers_boys
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # nutrition_barriers_not_accessed
 
@@ -594,19 +712,53 @@ nutrition_barriers_not_accessed_inconsistency <- hh_yes_consent_daily_data %>% m
   select(reported_date, X_uuid, enumerator_id, nutrition_barriers_not_accessed_cols, 
          child_taken_no_support_HH_count, child_not_taken_after_referral_HH_count)
 
+colnames(nutrition_barriers_not_accessed_inconsistency) = c("reported date", "X uuid", "enumerator id", "nutrition barriers not accessed: already referred", 
+                                                            "nutrition barriers not accessed: not admitted", "nutrition barriers not accessed: waiting times",
+                                                            "nutrition barriers not accessed: language barriers", "child taken no support HH count",
+                                                            "child not taken after referral HH count")
+
+kable_styling(kable(x = nutrition_barriers_not_accessed_inconsistency, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "nutrition_barriers_not_accessed_inconsistency"),
+              position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # Nutrition 2
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # PLW admitted
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # Folic Acid
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # Food Barriers
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # group_livelihood_coping
 
@@ -616,29 +768,107 @@ nutrition_barriers_not_accessed_inconsistency <- hh_yes_consent_daily_data %>% m
 #                                                      ((hh$selling_food_rations=="yes"|hh$selling_nfis=="yes")& hh$income_source.sale_assistance==0)
 # )
 # )
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # group_livelihood_coping2
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
 
-
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # coping_reason
 
-coping_reason_inconsistency<- hh_yes_consent_daily_data %>% mutate(
-  coping_reason_inconsistency = case_when((coping_reason.food == 1 & food_expenditure==0)|
-                                            (coping_reason.healthcare == 1 & (paid_healthcare !="yes"| health_expenditure==0))|
-                                            (coping_reason.education ==1 & education_expenditure==0)|
-                                            ((coping_reason.clothing ==1 |coping_reason.hh_items==1) & freq_nfi_expenditure==0)|
-                                            (coping_reason.shelter ==1 & (hh_yes_consent_daily_data$improvement.dont_know))
-                                          ~"yes", T~NA_character_))
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
 
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # coping_reason 2
+if(population=="host"){dist_learning_cols = c(
+  "distance_learning_girls_4_5", "distance_learning_girls_6_14", "distance_learning_girls_15_18",
+  "distance_learning_boys_4_5", "distance_learning_boys_6_14", "distance_learning_boys_15_18")
+} else {dist_learning_cols = c(
+  "distance_learning_girls_3", "distance_learning_girls_4_5", "distance_learning_girls_6_14", "distance_learning_girls_15_18", "distance_learning_girls_19_24",
+  "distance_learning_boys_3",	"distance_learning_boys_4_5", "distance_learning_boys_6_14",	"distance_learning_boys_15_18", "distance_learning_boys_19_24")
+}
 
+coping_reason_inconsistency_2 <- hh_yes_consent_daily_data %>% mutate(
+  coping_reason_inconsistency_2 = case_when(
+    (coping_reason.food == 1 & food_expenditure==0)|
+      (coping_reason.healthcare == 1 & (paid_healthcare !="yes"| health_expenditure==0))|
+      (coping_reason.education ==1 & rowSums(hh_yes_consent_daily_data[dist_learning_cols]==1, na.rm = T)) | # complicated, but I think it works...
+      (coping_reason.education ==1 & education_expenditure==0)|
+      ((coping_reason.clothing ==1 |coping_reason.hh_items==1) & freq_nfi_expenditure==0)|
+      # rent - added below in if statement
+      (coping_reason.shelter ==1 & (improvement.dont_know | improvement.no_improvement | improvement.other | shelter_expenditure == 0)) |
+      (coping_reason.cooking_fuel ==1 & (cooking_fuel.buying_lpg_refills !=1 | cooking_fuel.firewood_purchased != 1)) | # edited
+      (coping_reason.cooking_fuel ==1 & fuel_expenditure == 0) |
+      (coping_reason.hygiene_items ==1 & freq_nfi_expenditure == 0) |
+      # water added below in if statement...
+      (coping_reason.water ==1 & water_expenditure == 0)
+    ~"yes", TRUE~ NA_character_)) # This will return "yes" where it is TRUE and NA where it is not, but is present (I think)
 
+# Add in the bits needed for if it refugee community:
+if(population=="refugee"){x = case_when((
+  
+  # rent
+  coping_reason_inconsistency_2$coping_reason.water ==1 & 
+    (coping_reason_inconsistency_2$water_coping.spend_money !=1 &
+       coping_reason_inconsistency_2$water_coping.buy_water !=1) |
+  # water  
+    (coping_reason_inconsistency_2$coping_reason.rent ==1 &
+       (coping_reason_inconsistency_2$shelter_paid.no_need==1 |
+          coping_reason_inconsistency_2$shelter_paid.dont_know==1 |
+          coping_reason_inconsistency_2$shelter_paid.other==1)))~"yes", 
+  TRUE~ "no")
+  
+} else {x = case_when(
+  
+  # water
+  (coping_reason_inconsistency_2$coping_reason.water == 1 & 
+     coping_reason_inconsistency_2$water_coping.spend_money !=1)~"yes", 
+  TRUE~"no")
+
+}
+
+coping_reason_inconsistency_2$coping_reason_inconsistency_2[x=="yes"] = "yes"
+
+# Specify the columns to include, this depends on the population:
+cols = c("reported_date", "X_uuid", "enumerator_id", "coping_reason", "coping_reason_inconsistency_2", "food_expenditure", 
+         "health_expenditure", "paid_healthcare", "education_expenditure", "infreq_nfi_expenditure",
+         "rent_expenditure", "shelter_expenditure", "improvement", "fuel_expenditure",
+         "freq_nfi_expenditure", "water_coping", "water_expenditure", dist_learning_cols) # , "fuel"
+if(population=="refugee"){cols = c(cols, "shelter_paid")}
+
+coping_reason_inconsistency_2 = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2=="yes") %>% select(cols)
+
+# Create the table print out:
+kable_styling(kable(x = coping_reason_inconsistency_2, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "coping_reason_inconsistency_2"),
+              position = "center")
+
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # ------------------------------------------------------------------------- 
 # Income_source
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # assistance_amount
 # salaried_work_amount
@@ -655,6 +885,12 @@ coping_reason_inconsistency<- hh_yes_consent_daily_data %>% mutate(
 # sale_assistance_amount
 # other_amount 
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # food_expenditure 
 # rent_expenditure 
@@ -667,6 +903,12 @@ coping_reason_inconsistency<- hh_yes_consent_daily_data %>% mutate(
 # fuel_expenditure
 # transportation_expenditure 
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # fuel_expenditure
 fuel_expenditure_inconsistency <- hh_yes_consent_daily_data %>% mutate(
@@ -674,8 +916,17 @@ fuel_expenditure_inconsistency <- hh_yes_consent_daily_data %>% mutate(
                                          (fuel_expenditure== 0 & (cooking_fuel.buying_lpg_refills == 1 | cooking_fuel.firewood_purchased ==1))~ "yes",
                                        T~ NA_character_)) %>% 
   filter(fuel_expend_inconsistency=="yes") %>% 
-  select(reported_date,X_uuid,enumerator_id,fuel_expenditure,cooking_fuel.buying_lpg_refills,cooking_fuel.firewood_purchased)
+  select(reported_date, X_uuid, enumerator_id, fuel_expenditure, cooking_fuel.buying_lpg_refills, cooking_fuel.firewood_purchased)
 
+colnames(fuel_expenditure_inconsistency) = c("reported date", "X uuid", "enumerator id", "fuel expenditure",
+                                             "cooking fuel: buying lpg refills", "cooking fuel: firewood purchased")
+
+kable_styling(kable(x = fuel_expenditure_inconsistency, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "fuel_expenditure_inconsistency"),
+              position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # shelter_expenditure
 # infreq_nfi_expenditure
@@ -683,6 +934,12 @@ fuel_expenditure_inconsistency <- hh_yes_consent_daily_data %>% mutate(
 # education_expenditure
 # debt_expenditure 
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # ------------------------------------------------------------------------- 
 # health_expenditure
 health_expenditure_inconsistency<- hh_yes_consent_daily_data %>% mutate(
@@ -690,9 +947,14 @@ health_expenditure_inconsistency<- hh_yes_consent_daily_data %>% mutate(
                                                (health_expenditure==0 & paid_healthcare=="yes")~"yes",
                                               T~NA_character_))%>% 
   filter(health_expenditure_inconsistency=="yes") %>% 
-  select(reported_date,X_uuid,enumerator_id,paid_healthcare)
+  select(reported_date, X_uuid, enumerator_id, paid_healthcare)
 
+kable_styling(kable(x = health_expenditure_inconsistency, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "health_expenditure_inconsistency"),
+              position = "center")
+```
 
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # shelter_expenditure
 
@@ -703,8 +965,12 @@ shelter_expenditure_inconsistency <- hh_yes_consent_daily_data %>% mutate(
   filter(shelter_expenditure_inconsistency=="yes") %>% 
   select(reported_date,X_uuid,enumerator_id,shelter_materials_source)
 
+kable_styling(kable(x = shelter_expenditure_inconsistency, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "shelter_expenditure_inconsistency"),
+              position = "center")
+```
 
-
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # sanitation_coping
 
@@ -714,21 +980,41 @@ sanitation_coping_inconsistency <- hh_yes_consent_daily_data %>% mutate(
   filter(sanitation_coping_inconsistency=="yes") %>% 
   select(reported_date,X_uuid,enumerator_id,sanitation_coping,sanitation_barriers_male,sanitation_barriers_female)
 
+kable_styling(kable(x = sanitation_coping_inconsistency, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "sanitation_coping_inconsistency"),
+              position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # group_water_quantity
 
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
+```
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
 # child_needs
+
+# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "..."),
+#               position = "center")
 ```
 
 ### Outliers check
 
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# TODO - not working
+# TODO
+# Cara wants the mean and SD at several points. This function will do this automatically.
+# There is more code on this in the daily monitoring script in the rATA script.
+
 # outliers_check_hh <- outlier_check(df = hh_yes_consent_daily_data, kobo_tool_location = "../01_DAP/tool/host/Host_JMSNA_2021_v8.xlsx",
 #                                    cols_to_report = c("X_uuid","enumerator_id"))# , include_multiple_choices = FALSE)
 # 
-# outliers_check_indv <- outlier_check(df = indv_daily_data,kobo_tool_location = "01_DAP/tool/host/Host_JMSNA_2021_v8.xlsx",cols_to_report = c("X_uuid"),include_multiple_choices = FALSE)
+# outliers_check_indv <- outlier_check(df = indv_daily_data,kobo_tool_location = "01_DAP/tool/host/Host_JMSNA_2021_v8.xlsx",
+# cols_to_report = c("X_uuid"),include_multiple_choices = FALSE)
 
 
 ```
@@ -738,13 +1024,12 @@ sanitation_coping_inconsistency <- hh_yes_consent_daily_data %>% mutate(
 
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
-hh_other_cols <- hh %>% select(c(starts_with("other_"),ends_with("_other"))) %>% names()
-ind_other_cols <- indv %>%  select(c(starts_with("other_"),ends_with("_other"))) %>% names()
+hh_other_cols <- hh %>% select(c(starts_with("other_"), ends_with("_other"))) %>% names()
+ind_other_cols <- indv %>%  select(c(starts_with("other_"), ends_with("_other"))) %>% names()
 
-
-hh_other<-hh_yes_consent_daily_data %>%
-filter_at(vars(hh_other_cols), any_vars(!is.na(.))) %>%
-select(reported_date,X_uuid,enumerator_id,hh_other_cols)
+hh_other <- hh_yes_consent_daily_data %>%
+  filter_at(vars(hh_other_cols), any_vars(!is.na(.))) %>%
+  select(reported_date,X_uuid,enumerator_id,hh_other_cols)
 
 #hh_other$other_freq_expenditure<- hh_other$other_freq_expenditure %>% as.character()
 hh_other$other_amount<- hh_other$other_amount %>% as.character()
@@ -752,12 +1037,11 @@ hh_other$water_coping.less_preferred_other<- hh_other$water_coping.less_preferre
 hh_other$water_coping.less_use_other<- hh_other$water_coping.less_preferred_other %>% as.character()
 
 
-hh_other_pi_long <- hh_other %>% pivot_longer(-c("reported_date","X_uuid","enumerator_id"),names_to = "questions",values_to = "old_value") %>% 
-  mutate(
-  survey_loop = "HH"
-) %>% group_by(X_uuid) %>% mutate(
-  ref_col = paste0("Other_response_",cur_group_rows())
-)
+hh_other_pi_long <- hh_other %>% pivot_longer(-c("reported_date","X_uuid","enumerator_id"), names_to = "questions", values_to = "old_value") %>%
+  mutate(survey_loop = "HH") %>% 
+  group_by(X_uuid) %>% 
+  mutate(ref_col = paste0("Other_response_",cur_group_rows()))
+
 hh_other_pi_long <- hh_other_pi_long %>% filter(!is.na(old_value))
 
 indv_other<-indv_daily_data %>% 
@@ -768,35 +1052,37 @@ indv_other<-indv_daily_data %>%
 
 ind_other_pi_long <- indv_other %>% pivot_longer(-c("reported_date","X_uuid","repeat_instance_name","enumerator_id"),names_to = "questions",values_to = "old_value") %>% 
   mutate(
-  survey_loop = "inividual"
-) %>% group_by(repeat_instance_name) %>% mutate(
-  ref_col = paste0("Other_response_",cur_group_rows())
-)
+  survey_loop = "inividual") %>% 
+  group_by(repeat_instance_name) %>% 
+  mutate(ref_col = paste0("Other_response_", cur_group_rows()))
 
 ind_other_pi_long <- ind_other_pi_long %>% filter(!is.na(old_value))
 
-ind_other_pi_long$old_value<- ind_other_pi_long$old_value %>% as.character()
+ind_other_pi_long$old_value <- ind_other_pi_long$old_value %>% as.character()
 
 
-cleaning_log_other <- bind_rows(hh_other_pi_long,ind_other_pi_long) %>% select(reported_date,X_uuid,survey_loop,repeat_instance_name,everything())
+cleaning_log_other <- bind_rows(hh_other_pi_long, ind_other_pi_long) %>% select(reported_date, X_uuid, survey_loop, repeat_instance_name, everything())
 
 all_cleaning_log[["other_respose_cl"]] <- cleaning_log_other
+
+kable_styling(kable(x = cleaning_log_other, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "'Other' answers"),
+              position = "center")
 ```
 
 
 ## cleaning log
-cleaning log will be provided in seperate excel file
-```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE,include= FALSE}
+cleaning log will be provided in separate excel file. This is currently not being written as deemed unneccesary for now.
+```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE,include= FALSE}
 all_cleaning_log$duration_cl$old_value <- all_cleaning_log$duration_cl$old_value %>% as.character()
 final_cleaning_log <- do.call("bind_rows",all_cleaning_log)
 
-final_cleaning_log <- final_cleaning_log %>% mutate(new_value =NULL,
-                                                    change_type=NULL) %>% select(reported_date,X_uuid,enumerator_id,survey_loop,questions,old_value,everything())
+final_cleaning_log <- final_cleaning_log %>% mutate(new_value =NULL,change_type=NULL) %>%
+  select(reported_date, X_uuid, enumerator_id, survey_loop, questions, old_value, everything())
 
 final_cleaning_log <- final_cleaning_log %>% rename("issues"="ref_col")
 
-final_cleaning_log$reported_date <- final_cleaning_log$reported_date %>%  lubridate::as_date()
-
+final_cleaning_log$reported_date <- final_cleaning_log$reported_date %>% lubridate::as_date()
 
 final_cleaning_log <- final_cleaning_log %>% filter(reported_date == day_to_run)  #### Output daily cleaning log only
 
@@ -891,7 +1177,6 @@ setColWidths(wb, 1, cols = which(names(final_cleaning_log_for_excel)== "unique_c
 
 
 saveWorkbook(wb, file = paste0(cleaning_log_path, gsub(x = day_to_run, pattern = "-", replacement = ""), "_", "cleaning_log_", population, ".xlsx"), overwrite = TRUE)
-
 
 
 ```
