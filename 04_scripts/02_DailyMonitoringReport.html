@@ -636,23 +636,23 @@ summary {
 
 <h1 class="title toc-ignore"><code>Daily Monitoring Report</code></h1>
 <h4 class="author">BGD GIS DATA UNIT - Ben Smith</h4>
-<h4 class="date">04 July, 2021</h4>
+<h4 class="date">05 July, 2021</h4>
 
 </div>
 
 
-<div id="testing" class="section level1">
-<h1>Testing</h1>
+<div id="testing" class="section level2">
+<h2>Testing</h2>
 <p>The following snippet should be used for testing, then removed for the actual runs:</p>
 <pre class="r"><code>population&lt;-c(&quot;host&quot;,&quot;refugee&quot;)[1]
 write_csv_output&lt;-c(&quot;yes&quot;,&quot;no&quot;)[2]
 day_to_run &lt;- Sys.Date()-1</code></pre>
 </div>
-<div id="preamble-for-setting-up-the-data-collection" class="section level1">
-<h1>Preamble for setting up the data collection:</h1>
+<div id="preamble-for-setting-up-the-data-collection" class="section level2">
+<h2>Preamble for setting up the data collection:</h2>
 </div>
-<div id="load-the-host-community-data" class="section level1">
-<h1>Load the host community data</h1>
+<div id="load-the-host-community-data" class="section level2">
+<h2>Load the host community data</h2>
 <pre class="r"><code># &gt;&gt; For the host community, load in the data and the tool: &lt;&lt;
 
 # load kobo tool 
@@ -663,42 +663,45 @@ if(population == &quot;host&quot;){
   survey_sheet$name &lt;- gsub(x =  survey_sheet$name, pattern = &quot;-&quot;, replacement = &quot;.&quot;)
 }
 
-############# # Why is this here? 
-# Assign a blank list to be the cleaning log:
-all_cleaning_log &lt;- list()
+# Convert the data from xlsx to csv&#39;s:
+  # This is because it is read into R better as csv&#39;s, but we do not want to do this conversion manually.
+  # This will overwrite the previous csv&#39;s.
+  # There is a function in the utils.R script that may also do this (can&#39;t remember which of us wrote it).
+  
+  # hh
+  data_sheet = read_xlsx(data_path, sheet = 1); write.csv(x = data_sheet, file = hh_path, row.names = FALSE)
+  # indv
+  data_sheet = read_xlsx(data_path, sheet = 2); write.csv(x = data_sheet, file = indv_path, row.names = FALSE)
+  # indv_disability_repeat
+  data_sheet = read_xlsx(data_path, sheet = 3); write.csv(x = data_sheet, file = indv_dis_repeat_path, row.names = FALSE)
 
-
-# load data
-if(population == &quot;host&quot;){ # why is this a seperate IF statement?
-  hh &lt;- read.csv(hh_path, stringsAsFactors = FALSE, na.strings=c(&quot;&quot;, &quot; &quot;, NA)) 
-  indv &lt;- read.csv(indv_path, stringsAsFactors = FALSE, na.strings=c(&quot;&quot;, &quot; &quot;, NA)) 
-  indv_dis_repeat &lt;- read.csv(indv_dis_repeat_path, stringsAsFactors = FALSE, na.strings=c(&quot;&quot;, &quot; &quot;, NA))
-}
+# load datav from csv&#39;s:
+hh &lt;- read.csv(hh_path, stringsAsFactors = FALSE, na.strings=c(&quot;&quot;, &quot; &quot;, NA))
+indv &lt;- read.csv(indv_path, stringsAsFactors = FALSE, na.strings=c(&quot;&quot;, &quot; &quot;, NA))
+indv_dis_repeat &lt;- read.csv(indv_dis_repeat_path, stringsAsFactors = FALSE, na.strings=c(&quot;&quot;, &quot; &quot;, NA))
 
 # Change some of the column names in the individual datasets: 
 # 1. X_submission__uuid in indv
 names(indv) &lt;- gsub(x =  names(indv), pattern = &quot;X_submission__uuid&quot;, replacement = &quot;X_uuid&quot;)
+names(indv) &lt;- gsub(x =  names(indv), pattern = &quot;_submission__uuid&quot;, replacement = &quot;X_uuid&quot;)
 # 2. X_submission__uuid in indv_dis_repeat
-names(indv_dis_repeat) &lt;- gsub(x = names(indv_dis_repeat), pattern =&quot;X_submission__uuid&quot;, replacement = &quot;X_uuid&quot;,)
+names(indv_dis_repeat) &lt;- gsub(x = names(indv_dis_repeat), pattern = &quot;X_submission__uuid&quot;, replacement = &quot;X_uuid&quot;,)
+names(indv_dis_repeat) &lt;- gsub(x = names(indv_dis_repeat), pattern = &quot;_submission__uuid&quot;, replacement = &quot;X_uuid&quot;,)
 # 3. ind_number_dis in indv_dis_repeat
 names(indv_dis_repeat) &lt;- gsub(x = names(indv_dis_repeat), pattern = &quot;ind_number_dis&quot;, replacement = &quot;ind_number&quot;)
+
 
 # Create a variable to contain the X_uuid and the enumerator id:
 hh_enumerator_id &lt;- hh %&gt;% select(X_uuid, enumerator_id)</code></pre>
 </div>
-<div id="create-date-log" class="section level1">
-<h1>Create Date Log</h1>
+<div id="create-date-log" class="section level2">
+<h2>Create Date Log</h2>
 <p>This section records the dates that the surveys were initially checked by this script. There will be a separate date_log_full file in the Data Analysis outputs folder for both the host and refugee datasets. This uses the hh datasets. It is only writen if ‘output’ == yes in the “daily_checks.R” script. This will output a date_log_full.csv file that contains all of the dates for each community as well as archiving .csv’s that record each instance the date logs are written.</p>
 <pre class="r"><code># TODO Change the name of this column to monitored_date so that it is a little clearer.
 
 # &gt;&gt;&gt; REQUIRED ONLY ON THE FIRST DAY OF DATA COLLECTION
-# hh$reported_date &lt;- day_to_run # I don&#39;t think you want this
-# date_log_full &lt;- hh %&gt;% select(X_uuid, reported_date)
+# date_log_full &lt;- data.frame(&quot;X_uuid&quot; = hh[,&quot;X_uuid&quot;], &quot;reported_date&quot; = day_to_run)
 # write.csv(date_log_full, paste0(date_log_path,&quot;date_log_full.csv&quot;), row.names=FALSE)
-  # &gt;&gt;&gt; Ben changed this to:
-  # date_log_full &lt;- data.frame(&quot;X_uuid&quot; = hh[,&quot;X_uuid&quot;], &quot;reported_date&quot; = day_to_run)
-  # write.csv(date_log_full, paste0(date_log_path,&quot;date_log_full.csv&quot;), row.names=FALSE)
-  # &lt;&lt;&lt;
 # &lt;&lt;&lt;
 
 # Read in the previous date log:
@@ -739,21 +742,24 @@ if(write_csv_output == &quot;yes&quot;){
   # hh_day_data &lt;- hh %&gt;% filter(reported_date == day_to_run) 
 
 # Individual
-  # Create a vector of the UIDs in today&#39;s consented data:
-  hh_day_data_xuid &lt;- hh_yes_consent_daily_data$X_uuid  #to run daily data
+  # # Create a vector of the UIDs in today&#39;s consented data:
+  #  &lt;- hh_yes_consent_daily_data$X_uuid  #to run daily data
   
   # Create a dataset that contains all of the individual data with consent:
-  indv_daily_data &lt;- indv %&gt;% filter(X_uuid %in% hh_day_data_xuid)
+  indv_daily_data &lt;- indv %&gt;% filter(X_uuid %in% hh_yes_consent_daily_data$X_uuid)
 
 # Individual Disability Repeat loop:
-  indv_dis_repeat_daily_data &lt;- indv_dis_repeat %&gt;% filter(ind_number %in% indv_daily_data$ind_number)</code></pre>
+  # indv_dis_repeat_daily_data &lt;- indv_dis_repeat %&gt;% filter(ind_number %in% indv_daily_data$ind_number)
+  indv_dis_repeat_daily_data &lt;- indv_dis_repeat %&gt;% filter(X_uuid %in% hh_yes_consent_daily_data$X_uuid)</code></pre>
+</div>
 </div>
 <div id="general-checks" class="section level2">
 <h2>General Checks</h2>
-<div id="daily-progress-tracking" class="section level3">
-<h3>1. Daily Progress Tracking</h3>
-<p>Total number of household surveys taken so far for host community is <strong>2</strong>.</p>
-The monitoring period is 2021-07-02 to 2021-07-04 19:11:53. Any surveys completed after, but on the same day, that the previous data was downloaded will be included here.
+</div>
+<div id="daily-progress-tracking" class="section level2">
+<h2>1. Daily Progress Tracking</h2>
+<p>Total number of household surveys taken so far for host community is <strong>1</strong>.</p>
+The monitoring period is 2021-07-04 to 2021-07-05 19:58:51. Any surveys completed after, but on the same day, that the previous data was downloaded will be included here.
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
 Total number of surveys reached and consenting per area (camp/union).
@@ -789,25 +795,25 @@ Not consenting
 <tbody>
 <tr>
 <td style="text-align:center;">
-2021-07-02
+2021-07-04
 </td>
 <td style="text-align:center;">
-jalia_palong
+palong_khali
 </td>
 <td style="text-align:center;">
-2
+1
 </td>
 <td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-0
+1
 </td>
 <td style="text-align:center;">
 0
 </td>
 <td style="text-align:center;">
-2
+0
+</td>
+<td style="text-align:center;">
+1
 </td>
 <td style="text-align:center;">
 0
@@ -816,10 +822,9 @@ jalia_palong
 </tbody>
 </table>
 </div>
-</div>
 <div id="survey-verification-duplicate-ids" class="section level2">
 <h2>2. Survey verification (Duplicate IDs)</h2>
-<p>Check whether there are duplicated respondent IDs in the consenting data for this monitoring period:</p>
+Check whether there are duplicated respondent IDs in the consenting data for this monitoring period:
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
 Surveys where respondent_id is not unique
@@ -845,16 +850,27 @@ respondent_id
 </tr>
 </tbody>
 </table>
+<p>Flag if sample FCN not identical with respondent FCN (if given)</p>
 </div>
-<div id="enumerator-and-survey-duration-issues-duration" class="section level2">
-<h2>3. Enumerator and survey duration issues (duration)</h2>
+<div id="enumerator-and-survey-duration-issues" class="section level2">
+<h2>3. Enumerator and survey duration issues</h2>
+<ol style="list-style-type: lower-alpha">
+<li><p>Surveys completed in less than 25 minutes</p></li>
+<li><p>Duration statistics by enumerator – average time per survey per enumerator</p></li>
+<li><p>Duration by group ST: Cara wants to get times for each group. There are over 60, so perhaps it would be better to just use a some?</p></li>
+<li><p>Number of surveys completed per enumerator per day:</p></li>
+<li><p>Check if enumerators selected dont_know for more than 15 questions</p></li>
+<li><p>Number of issues flagged by enumerator</p></li>
+</ol>
 </div>
 <div id="logical-inconsistencies" class="section level2">
 <h2>4. Logical inconsistencies</h2>
 <p>Each row of the data cleaning SOP has a different code chunk below.</p>
+<p>Clinics: flag if more than 3 selected – add column showing the selected options</p>
+Individuals_difficulties:
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
-Individuals_dificulties
+Individuals_difficulties
 </caption>
 <thead>
 <tr>
@@ -898,6 +914,8 @@ Communicating
 </tr>
 </tbody>
 </table>
+<p>shelter_issues_reason 1</p>
+shelter_issues_reason 2
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
 shelter_issues_reason 1
@@ -932,7 +950,7 @@ collapse_living_there
 </tr>
 </tbody>
 </table>
-Improvement_reason: flag if did_not_receive_any_shelter_support &amp; sold_materials selected – add column showing selected options
+Improvement_reason 1: flag if did_not_receive_any_shelter_support &amp; sold_materials selected – add column showing selected options
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
 improvement_reason_inconsistency 1
@@ -964,7 +982,7 @@ sold materials
 </tr>
 </tbody>
 </table>
-<p>Improvement_reason 2</p>
+<p>Improvement_reason</p>
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
 group_nfi_inconsistency
@@ -1021,57 +1039,10 @@ bedding items
 <tbody>
 <tr>
 <td style="text-align:center;">
-2021-07-02
+2021-07-04
 </td>
 <td style="text-align:center;">
-61f8d2f5-8fb9-446a-b439-2ff7508284fb
-</td>
-<td style="text-align:center;">
-22
-</td>
-<td style="text-align:center;">
-yes
-</td>
-<td style="text-align:center;">
-no
-</td>
-<td style="text-align:center;">
-no
-</td>
-<td style="text-align:center;">
-no
-</td>
-<td style="text-align:center;">
-yes
-</td>
-<td style="text-align:center;">
-no
-</td>
-<td style="text-align:center;">
-no
-</td>
-<td style="text-align:center;">
-no
-</td>
-<td style="text-align:center;">
-no
-</td>
-<td style="text-align:center;">
-no
-</td>
-<td style="text-align:center;">
-yes
-</td>
-<td style="text-align:center;">
-no
-</td>
-</tr>
-<tr>
-<td style="text-align:center;">
-2021-07-02
-</td>
-<td style="text-align:center;">
-0a535d76-f986-4d8f-a718-3fd5a0728a20
+3ed1343d-77d1-46c1-80c9-e92369941d88
 </td>
 <td style="text-align:center;">
 2
@@ -1083,13 +1054,7 @@ no
 no
 </td>
 <td style="text-align:center;">
-yes
-</td>
-<td style="text-align:center;">
 no
-</td>
-<td style="text-align:center;">
-yes
 </td>
 <td style="text-align:center;">
 no
@@ -1107,7 +1072,13 @@ no
 no
 </td>
 <td style="text-align:center;">
-yes
+no
+</td>
+<td style="text-align:center;">
+no
+</td>
+<td style="text-align:center;">
+no
 </td>
 <td style="text-align:center;">
 no
@@ -1320,6 +1291,8 @@ distance_learning_boys_15_18
 </tr>
 </tbody>
 </table>
+<p>rent_expenditure</p>
+fuel_expenditure
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
 fuel_expenditure_inconsistency
@@ -1348,9 +1321,72 @@ cooking fuel: firewood purchased
 </thead>
 <tbody>
 <tr>
+<td style="text-align:center;">
+2021-07-04
+</td>
+<td style="text-align:center;">
+3ed1343d-77d1-46c1-80c9-e92369941d88
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
 </tr>
 </tbody>
 </table>
+Expenditure: Should flag unusually high/low values for each and the sum
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+expenditures_data_day
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported date
+</th>
+<th style="text-align:center;">
+X uuid
+</th>
+<th style="text-align:center;">
+enumerator id
+</th>
+<th style="text-align:center;">
+shelter expenditure
+</th>
+<th style="text-align:center;">
+infreq nfi expenditure
+</th>
+<th style="text-align:center;">
+health expenditure
+</th>
+<th style="text-align:center;">
+education expenditure
+</th>
+<th style="text-align:center;">
+debt expenditure
+</th>
+<th style="text-align:center;">
+expenditure total
+</th>
+<th style="text-align:center;">
+NA
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+health_expenditure
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
 health_expenditure_inconsistency
@@ -1376,6 +1412,7 @@ paid_healthcare
 </tr>
 </tbody>
 </table>
+shelter_expenditure
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
 shelter_expenditure_inconsistency
@@ -1401,6 +1438,7 @@ shelter_materials_source
 </tr>
 </tbody>
 </table>
+sanitation_coping
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
 sanitation_coping_inconsistency
@@ -1432,234 +1470,48 @@ sanitation_barriers_female
 </tr>
 </tbody>
 </table>
+group_water_quantity. <em>Cara</em> - what is this showing? Is it as you expect?
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+Flag if ‘enough_water_bathing_facility’ AND ‘enough_water_bathing_shelter’ are ‘not_applicable’.
+</caption>
+<thead>
+<tr>
+<th style="text-align:center;">
+reported date
+</th>
+<th style="text-align:center;">
+X uuid
+</th>
+<th style="text-align:center;">
+enumerator id
+</th>
+<th style="text-align:center;">
+sanitation coping
+</th>
+<th style="text-align:center;">
+enough water bathing facility
+</th>
+<th style="text-align:center;">
+enough water bathing shelter
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
 <div id="outliers-check" class="section level3">
 <h3>Outliers check</h3>
 </div>
 </div>
 <div id="other-response" class="section level2">
 <h2>Other response</h2>
-<table class="table" style="margin-left: auto; margin-right: auto;">
-<caption>
-‘Other’ answers
-</caption>
-<thead>
-<tr>
-<th style="text-align:center;">
-reported_date
-</th>
-<th style="text-align:center;">
-X_uuid
-</th>
-<th style="text-align:center;">
-survey_loop
-</th>
-<th style="text-align:center;">
-repeat_instance_name
-</th>
-<th style="text-align:center;">
-enumerator_id
-</th>
-<th style="text-align:center;">
-questions
-</th>
-<th style="text-align:center;">
-old_value
-</th>
-<th style="text-align:center;">
-ref_col
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center;">
-2021-07-02
-</td>
-<td style="text-align:center;">
-61f8d2f5-8fb9-446a-b439-2ff7508284fb
-</td>
-<td style="text-align:center;">
-HH
-</td>
-<td style="text-align:center;">
-NA
-</td>
-<td style="text-align:center;">
-22
-</td>
-<td style="text-align:center;">
-enough_water_other
-</td>
-<td style="text-align:center;">
-yes
-</td>
-<td style="text-align:center;">
-Other_response_26
-</td>
-</tr>
-<tr>
-<td style="text-align:center;">
-2021-07-02
-</td>
-<td style="text-align:center;">
-61f8d2f5-8fb9-446a-b439-2ff7508284fb
-</td>
-<td style="text-align:center;">
-HH
-</td>
-<td style="text-align:center;">
-NA
-</td>
-<td style="text-align:center;">
-22
-</td>
-<td style="text-align:center;">
-water_coping.less_preferred_other
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-Other_response_27
-</td>
-</tr>
-<tr>
-<td style="text-align:center;">
-2021-07-02
-</td>
-<td style="text-align:center;">
-61f8d2f5-8fb9-446a-b439-2ff7508284fb
-</td>
-<td style="text-align:center;">
-HH
-</td>
-<td style="text-align:center;">
-NA
-</td>
-<td style="text-align:center;">
-22
-</td>
-<td style="text-align:center;">
-water_coping.less_use_other
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-Other_response_28
-</td>
-</tr>
-<tr>
-<td style="text-align:center;">
-2021-07-02
-</td>
-<td style="text-align:center;">
-0a535d76-f986-4d8f-a718-3fd5a0728a20
-</td>
-<td style="text-align:center;">
-HH
-</td>
-<td style="text-align:center;">
-NA
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-other_information
-</td>
-<td style="text-align:center;">
-??
-</td>
-<td style="text-align:center;">
-Other_response_57
-</td>
-</tr>
-<tr>
-<td style="text-align:center;">
-2021-07-02
-</td>
-<td style="text-align:center;">
-0a535d76-f986-4d8f-a718-3fd5a0728a20
-</td>
-<td style="text-align:center;">
-HH
-</td>
-<td style="text-align:center;">
-NA
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-enough_water_other
-</td>
-<td style="text-align:center;">
-yes
-</td>
-<td style="text-align:center;">
-Other_response_81
-</td>
-</tr>
-<tr>
-<td style="text-align:center;">
-2021-07-02
-</td>
-<td style="text-align:center;">
-0a535d76-f986-4d8f-a718-3fd5a0728a20
-</td>
-<td style="text-align:center;">
-HH
-</td>
-<td style="text-align:center;">
-NA
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-water_coping.less_preferred_other
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-Other_response_82
-</td>
-</tr>
-<tr>
-<td style="text-align:center;">
-2021-07-02
-</td>
-<td style="text-align:center;">
-0a535d76-f986-4d8f-a718-3fd5a0728a20
-</td>
-<td style="text-align:center;">
-HH
-</td>
-<td style="text-align:center;">
-NA
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-water_coping.less_use_other
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-Other_response_83
-</td>
-</tr>
-</tbody>
-</table>
 </div>
 <div id="cleaning-log" class="section level2">
 <h2>cleaning log</h2>
 <p>cleaning log will be provided in separate excel file. This is currently not being written as deemed unneccesary for now.</p>
-</div>
 </div>
 
 

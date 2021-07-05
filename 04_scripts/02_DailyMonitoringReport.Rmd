@@ -5,18 +5,17 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
 html_document:
 code_folding: hide
-
 ---
 
-# Testing
-The following snippet should be used for testing, then removed for the actual runs:
 ```{r For_Testing}
+# --- Testing:
+# The following snippet should be used for testing, then removed for the actual runs:
 population<-c("host","refugee")[1]
 write_csv_output<-c("yes","no")[2]
 day_to_run <- Sys.Date()-1
 ```
 
-# Preamble for setting up the data collection:
+## Preamble for setting up the data collection:
 ```{r Libraries, include=FALSE, warning = FALSE, message=FALSE}
 # Set the default chuck settings:
 knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
@@ -25,26 +24,27 @@ knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
 library(tidyr) # used for pivot_longer
 library(dplyr)
 library(stringr)
-# library(ggplot2)
 library(lubridate) # (for ymd, remove dependence if possible)
+library(kableExtra) # install.packages("kableExtra")
+library(readxl)
+library(openxlsx)
+source("functions/Load_Audit.R")
+source("functions/utils.R")
+source("active_path.R")
+# library(ggplot2)
 # library(rgdal)
 # library(butteR)
-library(kableExtra) # install.packages("kableExtra")
 # library(gsubfn)
 # library(stringi)
 # library(sf)
-# library(readxl)
 # library(snakecase)
 # library(data.table)
-library(openxlsx)
 # library(cleaner)
 # library(illuminate)
-library(randomcoloR) # install.packages("randomcoloR")
-source("functions/Load_Audit.R")
-source("active_path.R")
+# library(randomcoloR) # install.packages("randomcoloR") # Used for cleaning log
 ```
 
-# Load the host community data
+## Load the host community data
 
 ```{r Loading_data}
 # >> For the host community, load in the data and the tool: <<
@@ -57,45 +57,48 @@ if(population == "host"){
   survey_sheet$name <- gsub(x =  survey_sheet$name, pattern = "-", replacement = ".")
 }
 
-############# # Why is this here? 
-# Assign a blank list to be the cleaning log:
-all_cleaning_log <- list()
+# Convert the data from xlsx to csv's:
+  # This is because it is read into R better as csv's, but we do not want to do this conversion manually.
+  # This will overwrite the previous csv's.
+  # There is a function in the utils.R script that may also do this (can't remember which of us wrote it).
+  
+  # hh
+  data_sheet = read_xlsx(data_path, sheet = 1); write.csv(x = data_sheet, file = hh_path, row.names = FALSE)
+  # indv
+  data_sheet = read_xlsx(data_path, sheet = 2); write.csv(x = data_sheet, file = indv_path, row.names = FALSE)
+  # indv_disability_repeat
+  data_sheet = read_xlsx(data_path, sheet = 3); write.csv(x = data_sheet, file = indv_dis_repeat_path, row.names = FALSE)
 
-
-# load data
-if(population == "host"){ # why is this a seperate IF statement?
-  hh <- read.csv(hh_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA)) 
-  indv <- read.csv(indv_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA)) 
-  indv_dis_repeat <- read.csv(indv_dis_repeat_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA))
-}
+# load datav from csv's:
+hh <- read.csv(hh_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA))
+indv <- read.csv(indv_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA))
+indv_dis_repeat <- read.csv(indv_dis_repeat_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA))
 
 # Change some of the column names in the individual datasets: 
 # 1. X_submission__uuid in indv
 names(indv) <- gsub(x =  names(indv), pattern = "X_submission__uuid", replacement = "X_uuid")
+names(indv) <- gsub(x =  names(indv), pattern = "_submission__uuid", replacement = "X_uuid")
 # 2. X_submission__uuid in indv_dis_repeat
-names(indv_dis_repeat) <- gsub(x = names(indv_dis_repeat), pattern ="X_submission__uuid", replacement = "X_uuid",)
+names(indv_dis_repeat) <- gsub(x = names(indv_dis_repeat), pattern = "X_submission__uuid", replacement = "X_uuid",)
+names(indv_dis_repeat) <- gsub(x = names(indv_dis_repeat), pattern = "_submission__uuid", replacement = "X_uuid",)
 # 3. ind_number_dis in indv_dis_repeat
 names(indv_dis_repeat) <- gsub(x = names(indv_dis_repeat), pattern = "ind_number_dis", replacement = "ind_number")
+
 
 # Create a variable to contain the X_uuid and the enumerator id:
 hh_enumerator_id <- hh %>% select(X_uuid, enumerator_id)
 
 ```
 
-# Create Date Log
+## Create Date Log
 
 This section records the dates that the surveys were initially checked by this script. There will be a separate date_log_full file in the Data Analysis outputs folder for both the host and refugee datasets. This uses the hh datasets. It is only writen if 'output' == yes in the "daily_checks.R" script. This will output a date_log_full.csv file that contains all of the dates for each community as well as archiving .csv's that record each instance the date logs are written.   
 ```{r Date_log}
 # TODO Change the name of this column to monitored_date so that it is a little clearer.
 
 # >>> REQUIRED ONLY ON THE FIRST DAY OF DATA COLLECTION
-# hh$reported_date <- day_to_run # I don't think you want this
-# date_log_full <- hh %>% select(X_uuid, reported_date)
+# date_log_full <- data.frame("X_uuid" = hh[,"X_uuid"], "reported_date" = day_to_run)
 # write.csv(date_log_full, paste0(date_log_path,"date_log_full.csv"), row.names=FALSE)
-  # >>> Ben changed this to:
-  # date_log_full <- data.frame("X_uuid" = hh[,"X_uuid"], "reported_date" = day_to_run)
-  # write.csv(date_log_full, paste0(date_log_path,"date_log_full.csv"), row.names=FALSE)
-  # <<<
 # <<<
 
 # Read in the previous date log:
@@ -141,19 +144,20 @@ These datasets contain all of the data that has not yet been monitored.
   # hh_day_data <- hh %>% filter(reported_date == day_to_run) 
 
 # Individual
-  # Create a vector of the UIDs in today's consented data:
-  hh_day_data_xuid <- hh_yes_consent_daily_data$X_uuid  #to run daily data
+  # # Create a vector of the UIDs in today's consented data:
+  #  <- hh_yes_consent_daily_data$X_uuid  #to run daily data
   
   # Create a dataset that contains all of the individual data with consent:
-  indv_daily_data <- indv %>% filter(X_uuid %in% hh_day_data_xuid)
+  indv_daily_data <- indv %>% filter(X_uuid %in% hh_yes_consent_daily_data$X_uuid)
 
 # Individual Disability Repeat loop:
-  indv_dis_repeat_daily_data <- indv_dis_repeat %>% filter(ind_number %in% indv_daily_data$ind_number)
+  # indv_dis_repeat_daily_data <- indv_dis_repeat %>% filter(ind_number %in% indv_daily_data$ind_number)
+  indv_dis_repeat_daily_data <- indv_dis_repeat %>% filter(X_uuid %in% hh_yes_consent_daily_data$X_uuid)
 ```
 
 ## General Checks
 
-### 1. Daily Progress Tracking
+## 1. Daily Progress Tracking
 Total number of household surveys taken so far for `r population` community is **`r nrow(hh)`**.
 
 The monitoring period is `r paste0(prev_monitor, " to ", Sys.time())`. Any surveys completed after, but on the same day, that the previous data was downloaded will be included here.
@@ -196,8 +200,8 @@ kable_styling(kable_input = kable(x = survey_complete_by_reach, longtable = T, b
 
 
 ## 2. Survey verification (Duplicate IDs) 
-Check whether there are duplicated respondent IDs in the consenting data for this monitoring period:
 
+Check whether there are duplicated respondent IDs in the consenting data for this monitoring period:
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 # TODO make this use all data, not just daily.
@@ -219,116 +223,146 @@ kable_styling(kable_input = kable(x = check_duplicate_respondent_id,
               position = "center")
 
 check_duplicate_respondent_id_pi_long <- check_duplicate_respondent_id %>% 
-  pivot_longer(-c("reported_date","X_uuid","enumerator_id"),
-               names_to = "questions", values_to = "old_value") %>% 
-  mutate(
-  survey_loop = "HH"
-) %>% group_by(X_uuid) %>% mutate(
-  ref_col = paste0("Surveys where respondent_id is not unique",cur_group_id())
-)
+  pivot_longer(-c("reported_date","X_uuid","enumerator_id"), names_to = "questions", values_to = "old_value") %>% 
+  mutate( survey_loop = "HH") %>% 
+  group_by(X_uuid) %>% 
+  mutate(ref_col = paste0("Surveys where respondent_id is not unique",cur_group_id()))
 
 
-all_cleaning_log[["duplicate_respondent_id"]] <- check_duplicate_respondent_id
+# Assign a blank list to be the cleaning log:
+# all_cleaning_log <- list()
+# all_cleaning_log[["duplicate_respondent_id"]] <- check_duplicate_respondent_id
 
 
 ```
 
-
-## 3. Enumerator and survey duration issues (duration)
-
+Flag if sample FCN not identical with respondent FCN (if given)
 ```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
-# TODO - this doesn't work and I don't know what it is doing at the start. Fix.
 
-# This reads in the audit file: (Audit files records the time spent for each question, start and end time in milliseconds)
-# We time from the end of informed consent.
-# Cara wants to get times for each group. There are over 60, so perhaps it would be better to just use a some. 
+```
 
-# audit_yes <- Load_Audit(data = hh, filter.column = "informed_consent",
-#                         path.to.zip = audit_zipfile,
-#                         path.to.unzip = path_unzip,
-#                         copy.zip = TRUE,
-#                         path.to.copy.zip = copy_zip_to,
-#                         delete.unzipped=TRUE)
-# 
-# dfl<-list()
-# for (i in 1: length(audit_yes)){
-#   d <- audit_yes[[i]]
-#   
-#   d$node<-gsub("\\[1]","",d$node)
-# 
-#   start_question <- d %>% filter(node==paste0(audit_node,"informed_consent")& !is.na(event)) %>% 
-#     select(end) 
-#   start_question<-min(start_question$end)
-#   end_question<-d %>% filter(node==paste0(audit_node,"end_note") & !is.na(node)) %>% 
-#     select(end)
-#   end_question<-max(end_question$end)
-#   duration_ms<-end_question-start_question
-#   duration_secs<-duration_ms/1000
-#   duration_minutes<- round(duration_secs/60,1)
-#   dfl[[i]]<-data.frame(uuid=names(audit_yes)[i],duration_ms=duration_ms,durations_secs=duration_secs,duration_minutes= duration_minutes)
-# }
-# 
-# duration_df2 <- do.call("rbind", dfl)
-# survey_time <- duration_df2 %>% filter(duration_minutes <25)
-# 
-# survey_time <- survey_time %>% left_join(hh_yes_consent_full_data %>% select(reported_date,X_uuid, enumerator_id ),by = c("uuid"="X_uuid"))
-# survey_time<- survey_time %>% select(reported_date, uuid, enumerator_id, duration_minutes)
-# 
-# duration_df2 <- duration_df2 %>% mutate(
-# duration_minutes = if_else(is.infinite(duration_minutes),NA_real_, duration_minutes))
-# 
-# 
-# mean_survey_time <- mean(duration_df2$duration_minutes,na.rm = T)
-# median_survey_time <- median(duration_df2$duration_minutes,na.rm = T)
-# 
-# paste0("Mean Survey Time- ", mean_survey_time,"<p>")
-# paste0("Median Survey Time- ",median_survey_time,"<p>")
-# 
-# 
-# survey_time %>% kable( longtable = T, booktabs = T, linesep = "", align = "c",caption= "surveys which are completed in less than 20 min") %>% kable_styling(position = "center")
-# 
-# survey_time<- survey_time %>% filter(reported_date== day_to_run)
-# survey_time<- survey_time %>% rename("X_uuid"="uuid")
-# 
-# survey_time_pi_long<- survey_time %>% pivot_longer(-c("reported_date","X_uuid","enumerator_id"),names_to = "questions",values_to = "old_value") %>% 
-#   mutate(
-#   survey_loop = "HH"
-# ) %>% group_by(X_uuid) %>% mutate(
-#   ref_col = paste0("duration_less_than_25_min",cur_group_id())
-# )
+## 3. Enumerator and survey duration issues 
+
+```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+# Load in and calculate the duration data:
+
+# Load in the audit data:
+audit_yes <- Load_Audit(data = hh,
+                        filter.column = "informed_consent",
+                        path.to.zip = audit_zipfile,
+                        path.to.unzip = path_unzip,
+                        copy.zip = TRUE,
+                        path.to.copy.zip = copy_zip_to,
+                        delete.unzipped=TRUE)
+
+# ...
+dfl<-list()
+for (i in 1:length(audit_yes)){
+  d <- audit_yes[[i]]
+
+  d$node <- gsub("\\[1]", "", d$node) # does this do anything?...
+  
+  # Start the time checking after the informed consent question:
+  start_question <- d %>% filter(node == paste0(audit_node,"informed_consent") & !is.na(event)) %>% select(end)
+  start_question <- min(start_question$end)
+  
+  # Find the end question, after which times will not be checked:
+  end_question <- d %>% filter(node==paste0(audit_node,"end_note") & !is.na(node)) %>% select(end)
+  end_question<-max(end_question$end)
+  
+  # Find the duration of the survey:
+  duration_ms <- end_question-start_question
+    # convert to seconds:
+    # duration_secs <- duration_ms/1000
+    duration_minutes<- round(duration_ms/(1000*60), 1)
+    
+    # Assign the duration to a dataframe:
+    dfl[[i]] <- data.frame(uuid = names(audit_yes)[i],
+                           # duration_ms = duration_ms,
+                           # durations_secs = duration_secs,
+                           duration_minutes = duration_minutes)
+}
+
+```
+
+a) Surveys completed in less than 25 minutes
+```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+# Join the survey duration to the survey details (id etc.):
+duration_df2 <- do.call("rbind", dfl)
+survey_time <- duration_df2 %>% filter(duration_minutes <25)
+
+survey_time <- survey_time %>% left_join(hh_yes_consent_full_data %>% select(reported_date, X_uuid, enumerator_id ), by = c("uuid"="X_uuid"))
+survey_time <- survey_time %>% select(reported_date, uuid, enumerator_id, duration_minutes)
+
+duration_df2 <- duration_df2 %>% mutate(
+  duration_minutes = if_else(condition = is.infinite(duration_minutes), true = NA_real_, false = duration_minutes))
+
+# Stats on the survey times:
+mean_survey_time   <- mean(duration_df2$duration_minutes, na.rm = T)
+median_survey_time <- median(duration_df2$duration_minutes, na.rm = T)
+
+paste0("Mean Survey Time- ", mean_survey_time,"<p>")
+paste0("Median Survey Time- ",median_survey_time,"<p>")
+
+kable_styling(kable(x = survey_time, longtable = T, booktabs = T, linesep = "", align = "c", 
+                    caption= "surveys which are completed in less than 25 min"),
+              position = "center")
+
+# Calcualte the survey times of the surveys in the monitoring period only:
+survey_time <- survey_time %>% filter(reported_date == day_to_run)
+survey_time <- survey_time %>% rename("X_uuid"="uuid")
+
+# # Add the durations to the cleaning log:
+# survey_time_pi_long <- survey_time %>% pivot_longer(-c("reported_date","X_uuid","enumerator_id"),
+#                                                     names_to = "questions",values_to = "old_value") %>%
+#   mutate(survey_loop = "HH") %>%
+#   group_by(X_uuid) %>% 
+#   mutate(ref_col = paste0("duration_less_than_25_min",cur_group_id()))
 # 
 # all_cleaning_log[["duration_cl"]] <- survey_time_pi_long
-# 
-# 
-# duration_df3<- duration_df2 %>%  left_join(hh_yes_consent_full_data %>% select(reported_date,X_uuid, enumerator_id ),by = c("uuid"="X_uuid"))
-# 
-# duration_df3<- duration_df3 %>% group_by(enumerator_id) %>% summarise(
-#   mean_duration= mean(duration_minutes, na.rm = TRUE),
-#   median_duration = median(duration_minutes, na.rm=TRUE)
-# )
-# 
-# 
-# duration_df3 %>% kable(longtable = T, booktabs = T, linesep = "", align = "c",caption= "Duration Statistics of enumerators") %>% kable_styling(position = "center")
+```
 
-# ------------------------------------------------------------------------- 
-# --- Number of surveys completed per enumerator per day:
+b) Duration statistics by enumerator – average time per survey per enumerator
+```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+# List the mean and median survey durations for each enumerator: 
+duration_df3 <- duration_df2 %>% left_join(hh_yes_consent_full_data %>% select(reported_date, X_uuid, enumerator_id ), by = c("uuid"="X_uuid"))
+
+duration_df3 <- duration_df3 %>% group_by(enumerator_id) %>% 
+  summarise(mean_duration = mean(duration_minutes, na.rm = TRUE),
+            median_duration = median(duration_minutes, na.rm=TRUE))
+
+duration_df3 %>% kable(longtable = T, booktabs = T, linesep = "", align = "c",caption= "Duration Statistics of enumerators") %>% kable_styling(position = "center")
+```
+
+c) Duration by group
+ST: Cara wants to get times for each group. There are over 60, so perhaps it would be better to just use a some?
+```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
+```
+
+d)  Number of surveys completed per enumerator per day:
+```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 # Count the number of surveys done by each enumerator
 overall_complete_by_enumerator <- data.frame(
   # Overall:
-  hh_yes_consent_full_data  %>% group_by(enumerator_id) %>% summarise("Overall number of surveys completed (with consent)" = n()),
+  a = hh_yes_consent_full_data  %>% group_by(enumerator_id) %>% 
+    summarise("Overall number of surveys completed (with consent)" = n()),
   # In monitoring period
-  hh_yes_consent_daily_data %>% group_by(enumerator_id) %>% summarise("Survey's completed in monitoring period (with consent)" = n()
-  ))
+  b = (hh_yes_consent_daily_data %>% group_by(enumerator_id) %>% 
+    summarise("Survey's completed in monitoring period (with consent)" = n()))[2])
+
+colnames(overall_complete_by_enumerator) = c("enumerator_id", "Overall", "During monitoring period")
 
 # Print table
-kable_styling(kable_input = kable(x = survey_complete_by_reach, longtable = T, booktabs = T, linesep = "", align = "c", 
-                                  caption= "Total number of surveys reached and consenting per area (camp/union)."),
+kable_styling(kable_input = kable(x = overall_complete_by_enumerator, longtable = T, booktabs = T, linesep = "", align = "c", 
+                                  caption= "Number of surveys completed per enumerator per day:"),
               position = "center")
+```
 
-# ------------------------------------------------------------------------- 
-# >> Check if enumerators selected dont_know for more than 15 questions <<
+e)	Check if enumerators selected dont_know for more than 15 questions
+```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 # TODO Ben does not know why Sajnin has so much code and not just a row count... consider later
 
@@ -339,6 +373,7 @@ kobo_dont_know_choices  <- choice_sheet %>% filter(name == "dont_know")
 
 # Find all of the select one question types: 
 kobo_survey_select_one <- survey_sheet %>% filter(grepl(pattern = "select_one", x = type)) 
+
 # Remove the "select_one" from the type names: 
 kobo_survey_select_one$type <- gsub(x = kobo_survey_select_one$type, pattern = "select_one", replacement = "") %>% trimws()
 
@@ -398,26 +433,32 @@ kable_styling(kable(x = dont_know_more_than_15, longtable = T, booktabs = T, lin
 
 ```
 
+f)	Number of issues flagged by enumerator
+```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
+
+```
+
 
 ## 4. Logical inconsistencies
 
 Each row of the data cleaning SOP has a different code chunk below.
 
+Clinics: flag if more than 3 selected – add column showing the selected options
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
-# Clinics: flag if more than 3 selected – add column showing the selected options
 
 ```
 
+Individuals_difficulties:
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# Individuals_dificulties:
-# -------------------------------------------------------------------------
-  # Flag if more than 33% of HH members selected – add column indicating number of HH members selected, hh_size, and the values for indv_difficulty_seeing,
-  # indv_difficulty_hearing, indv_difficulty_walking, indv_difficulty_remembering, indv_difficulty_selfcare, indv_difficulty_communicating for each selected individual
+
+# Flag if more than 33% of HH members selected – add column indicating number of HH members selected, hh_size, 
+# and the values for indv_difficulty_seeing,indv_difficulty_hearing, indv_difficulty_walking, 
+# indv_difficulty_remembering, indv_difficulty_selfcare, indv_difficulty_communicating for each selected individual
 
 # Find the relevant column names:
 difficulty_colnames <- indv_dis_repeat_daily_data %>% select(contains("difficulty")) %>% colnames()
-
 
 individuals_difficulties <- indv_dis_repeat_daily_data %>% mutate(
   difficulty_col_rowsum = rowSums(indv_dis_repeat_daily_data[difficulty_colnames] == "lot_of_difficulty", na.rm =T) +
@@ -440,13 +481,20 @@ individuals_difficulties <- indv_dis_repeat_daily_data %>% mutate(
          Seeing, Hearing, Walking, Remembering, Selfcare, Communicating)
 
 kable_styling(kable(x = individuals_difficulties, longtable = T, booktabs = T, linesep = "", align = "c",
-                    caption= "Individuals_dificulties"),
+                    caption= "Individuals_difficulties"),
               position = "center")
 ```
 
+shelter_issues_reason 1
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
-# shelter_issues_reason 1
+
+```
+
+
+shelter_issues_reason 2
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+# -------------------------------------------------------------------------
 
 shelter_issues_reason_inconsistency <- hh_yes_consent_daily_data %>% mutate(
   shelter_issues_reason_inconsistency = case_when((shelter_issues_reason.damage_roof==1 & (leaks_during_rain!="yes"& lack_of_insulation!= "yes"))|
@@ -470,7 +518,7 @@ kable_styling(kable(x = shelter_issues_reason_inconsistency, longtable = T, book
 #               position = "center")
 ```
 
-Improvement_reason: flag if did_not_receive_any_shelter_support & sold_materials selected – add column showing selected options
+Improvement_reason 1: flag if did_not_receive_any_shelter_support & sold_materials selected – add column showing selected options
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # Improvement_reason
 
@@ -487,28 +535,53 @@ kable_styling(kable(x = improvement_reason_inconsistency, longtable = T, booktab
               position = "center")
 ```
 
-Improvement_reason 2
-```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# -------------------------------------------------------------------------
-# Improvement_reason 2
-# TODO - I don't think this shows anything yet.
-
-at_least_one_male_18_59 <- indv_dis_repeat_daily_data %>% group_by(X_uuid)
-
-# Find able bodied people (males 18-59) in indv data:
-at_least_one_male_18_59 = indv_daily_data %>% group_by(X_uuid) %>% 
-  summarise(at_least_one_male_18_59 = case_when(ind_gender=="male" & individual_age %in% 18:59 ~ "yes", T~NA_character_))
-
-improvement_reason_inconsistency2 <- hh_yes_consent_daily_data %>% left_join(at_least_one_male_18_59) %>% 
-  filter(improvement_reason.no_able_bodied_person==1 & at_least_one_male_18_59== "yes") # Don't think this is finished
-
-# kable_styling(kable(x = improvement_reason_inconsistency2, longtable = T, booktabs = T, linesep = "", align = "c",
-#                     caption = "flag if no_able_bodied_person & at least one male person in the household aged 18-59 that is not selected under individuals_difficulties"),
-#               position = "center")
-
+Improvement_reason
+```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+# a
 # ----
 
+# Find the people with disabilities:
+disabled <- indv_dis_repeat_daily_data %>% group_by(X_uuid)
 
+# Find the 18-59 males:
+males_18_59 = indv_daily_data %>% group_by(X_uuid) %>% mutate(
+  males_18_59 = case_when((ind_gender == "male" & individual_age %in% 18:59)~ "yes", TRUE~NA_character_)) %>%
+  filter(males_18_59=="yes") %>%
+  select(X_uuid, males_18_59)
+  
+# Find able males 18-59:
+able_males = males_18_59[(!disabled$X_uuid %in% males_18_59$X_uuid),] # << add
+# able_males = males_18_59 %>% select(!disabled$X_uuid %in% males_18_59$X_uuid) # has error if no content # or you could try this
+
+# Join able males with hh data and filter this to show conflicts:
+# TODO this doesn't work when there is no data - add this back in when you have some:
+improvement_reason_inconsistency2 <- hh_yes_consent_daily_data %>% left_join(able_males) %>% 
+  filter(improvement_reason.no_able_bodied_person==1 & able_males== "yes") %>% # Don't think this will work first time
+  select(reported_date, X_uuid, enumerator_id, improvement_reason.no_able_bodied_person, able_males, difficulty_colnames) # You may have to summarise the difficulty_colnames before you can add.
+
+kable_styling(kable(x = improvement_reason_inconsistency2, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "flag if no_able_bodied_person & at least one male person in the household aged 18-59"),
+              position = "center")
+
+# b
+# ----
+improvement_reason_inconsistency2b <- hh_yes_consent_daily_data %>% mutate(
+  "no need to improve" = case_when(improvement_reason.no_need_to_improve==1 & (leaks_during_rain!="no" | 
+                                                                                 limited_ventilation !="no" |
+                                                                                 dirt_debris !="no" |
+                                                                                 lack_of_insulation !="no" |
+                                                                                 collapse_living_there !="no")~ "yes", TRUE~NA_character_)) %>%
+    filter("no need to improve"=="yes") %>% 
+    select(reported_date, X_uuid, enumerator_id, "no need to improve", leaks_during_rain, 
+           limited_ventilation, dirt_debris, lack_of_insulation, collapse_living_there)
+
+
+colnames(improvement_reason_inconsistency2b) = c("reported date", "X uuid", "enumerator id", "no need to improve", "leaks during rain", 
+                                                 "limited ventilation", "dirt debris", "lack of insulation", "collapse living there") 
+
+kable_styling(kable(x = improvement_reason_inconsistency2b, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "Stated 'no need to improve' but has shelter problems:"),
+              position = "center")
 
 ```
 
@@ -587,7 +660,7 @@ kable_styling(kable(x = health_distance_inconsistensy, longtable = T, booktabs =
 # health_barriers_not_accessed, health_barriers_accessed, health_barriers_no_need
 
 health_service_inconsistency<- hh_yes_consent_daily_data %>% mutate(
-  health_service_inconsistency= case_when(((health_barriers_accessed.no_functional_facility_nearby==1 |
+  health_service_inconsistency = case_when(((health_barriers_accessed.no_functional_facility_nearby==1 |
                                               health_barriers_accessed.health_services_are_too_far_away==1|
                                               health_barriers_not_accessed.no_functional_facility_nearby==1| 
                                               health_barriers_not_accessed.health_services_are_too_far_away==1|
@@ -908,9 +981,27 @@ kable_styling(kable(x = coping_reason_inconsistency_2, longtable = T, booktabs =
 #               position = "center")
 ```
 
+rent_expenditure
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
+if(population=="refugee"){
+  rent_expenditure = hh_yes_consent_daily_data %>% mutate(
+    rent_expenditure = case_when((
+      (rent_expenditure > 0 & shelter_paid == "no_need") |
+      (rent_expenditure == 0 & shelter_paid != "no_need"))~"yes", T~ NA_character_)) %>%
+    filter(rent_expenditure=="yes") %>% 
+    select(reported_date, X_uuid, enumerator_id, shelter_paid, rent_expenditure)
+  
+  kable_styling(kable(x = rent_expenditure, longtable = T, booktabs = T, linesep = "", align = "c",
+                      caption = ""),
+                position = "center")
+}
+
+```
+
+fuel_expenditure
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
-# fuel_expenditure
 fuel_expenditure_inconsistency <- hh_yes_consent_daily_data %>% mutate(
   fuel_expend_inconsistency= case_when((fuel_expenditure> 0 & (cooking_fuel.buying_lpg_refills != 1 & cooking_fuel.firewood_purchased !=1))|
                                          (fuel_expenditure== 0 & (cooking_fuel.buying_lpg_refills == 1 | cooking_fuel.firewood_purchased ==1))~ "yes",
@@ -939,9 +1030,60 @@ kable_styling(kable(x = fuel_expenditure_inconsistency, longtable = T, booktabs 
 #               position = "center")
 ```
 
+Expenditure: Should flag unusually high/low values for each and the sum
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# ------------------------------------------------------------------------- 
-# health_expenditure
+
+expenditures = c("shelter_expenditure", "infreq_nfi_expenditure", "health_expenditure", "education_expenditure", "debt_expenditure")
+
+# Sum the expenditures:
+hh_yes_consent_full_data$expenditure_total = rowSums(hh_yes_consent_full_data[,expenditures])
+
+# Set up a matrix to hold the stats:
+expenditures = matrix(ncol = 6, nrow = 4, data = NA, 
+                      dimnames = list(c("mean", "SD", "mean-2SD", "mean+2SD"), 
+                                      c(expenditures, "expenditure_total")))
+
+
+# Extract all of the expenditure data: 
+expenditures_data <- hh_yes_consent_full_data[,colnames(expenditures)]
+
+
+# Compute the stats:
+for(e in colnames(expenditures)){
+  expenditures[1,e] = mean(expenditures_data[,e], na.rm = TRUE)
+  expenditures[2,e] = sd(x = expenditures_data[,e], na.rm = TRUE)
+  expenditures[3,e] = expenditures[1,e] - 2*expenditures[2,e]
+  expenditures[4,e] = expenditures[1,e] + 2*expenditures[2,e]
+}
+
+
+# Run through the daily dataset and find instances where this values are outliers:
+hh_yes_consent_daily_data$expenditure_total <- rowSums(hh_yes_consent_daily_data[, colnames(expenditures)[1:5]])
+expenditures_data_day <- hh_yes_consent_daily_data[, c("reported_date", "X_uuid", "enumerator_id", colnames(expenditures))]
+
+expenditures_data_day <- expenditures_data_day %>% mutate(
+  "outlier" = case_when((
+    (shelter_expenditure < expenditures[3, "shelter_expenditure"] | shelter_expenditure > expenditures[4, "shelter_expenditure"]) |
+      (infreq_nfi_expenditure < expenditures[3, "infreq_nfi_expenditure"] | infreq_nfi_expenditure > expenditures[4, "infreq_nfi_expenditure"]) |
+      (health_expenditure < expenditures[3, "health_expenditure"] | health_expenditure > expenditures[4, "health_expenditure"]) |
+      (education_expenditure < expenditures[3, "education_expenditure"] | education_expenditure > expenditures[4, "education_expenditure"]) |
+      (debt_expenditure < expenditures[3, "debt_expenditure"] | debt_expenditure > expenditures[4, "debt_expenditure"]) |
+      (expenditure_total < expenditures[3, "expenditure_total"] | expenditure_total > expenditures[4, "expenditure_total"]))~"yes", 
+    TRUE~NA_character_)) %>%
+  filter("outlier"=="yes")
+
+
+colnames(expenditures_data_day) = c("reported date", "X uuid", "enumerator id", gsub(x = colnames(expenditures), pattern = "_", replacement = " "))
+
+kable_styling(kable(x = expenditures_data_day, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "expenditures_data_day"),
+              position = "center")
+
+```
+
+health_expenditure
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
 health_expenditure_inconsistency<- hh_yes_consent_daily_data %>% mutate(
   health_expenditure_inconsistency= case_when((health_expenditure>0 & paid_healthcare=="no")|
                                                (health_expenditure==0 & paid_healthcare=="yes")~"yes",
@@ -954,9 +1096,8 @@ kable_styling(kable(x = health_expenditure_inconsistency, longtable = T, booktab
               position = "center")
 ```
 
+shelter_expenditure
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# -------------------------------------------------------------------------
-# shelter_expenditure
 
 shelter_expenditure_inconsistency <- hh_yes_consent_daily_data %>% mutate(
   shelter_expenditure_inconsistency= case_when((shelter_expenditure>0 & shelter_materials_source.purchased==0)|
@@ -970,9 +1111,8 @@ kable_styling(kable(x = shelter_expenditure_inconsistency, longtable = T, bookta
               position = "center")
 ```
 
+sanitation_coping
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# -------------------------------------------------------------------------
-# sanitation_coping
 
 sanitation_coping_inconsistency <- hh_yes_consent_daily_data %>% mutate(
   sanitation_coping_inconsistency = case_when((sanitation_coping.no_issue==1 & sanitation_barriers_female.no_problem==0 & sanitation_barriers_male.no_problem==0 )|
@@ -985,13 +1125,22 @@ kable_styling(kable(x = sanitation_coping_inconsistency, longtable = T, booktabs
               position = "center")
 ```
 
+group_water_quantity.
+*Cara* - what is this showing? Is it as you expect?
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# -------------------------------------------------------------------------
-# group_water_quantity
 
-# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
-#                     caption = "..."),
-#               position = "center")
+group_water_quantity = hh_yes_consent_daily_data %>% mutate(
+  group_water_quantity = case_when((enough_water_bathing_facility == "not_applicable" & enough_water_bathing_shelter == "not_applicable")~"yes",
+                                   T~ NA_character_)) %>%
+  filter(group_water_quantity=="yes") %>% 
+  select(reported_date, X_uuid, enumerator_id, sanitation_coping, enough_water_bathing_facility, enough_water_bathing_shelter)
+
+colnames(group_water_quantity) <- c("reported date", "X uuid", "enumerator id", "sanitation coping",
+                                    "enough water bathing facility",  "enough water bathing shelter") 
+
+kable_styling(kable(x = group_water_quantity, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "Flag if 'enough_water_bathing_facility' AND 'enough_water_bathing_shelter' are 'not_applicable'."),
+              position = "center")
 ```
 
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
@@ -1061,19 +1210,19 @@ ind_other_pi_long <- ind_other_pi_long %>% filter(!is.na(old_value))
 ind_other_pi_long$old_value <- ind_other_pi_long$old_value %>% as.character()
 
 
-cleaning_log_other <- bind_rows(hh_other_pi_long, ind_other_pi_long) %>% select(reported_date, X_uuid, survey_loop, repeat_instance_name, everything())
-
-all_cleaning_log[["other_respose_cl"]] <- cleaning_log_other
-
-kable_styling(kable(x = cleaning_log_other, longtable = T, booktabs = T, linesep = "", align = "c",
-                    caption = "'Other' answers"),
-              position = "center")
+# cleaning_log_other <- bind_rows(hh_other_pi_long, ind_other_pi_long) %>% select(reported_date, X_uuid, survey_loop, repeat_instance_name, everything())
+# 
+# all_cleaning_log[["other_respose_cl"]] <- cleaning_log_other
+# 
+# kable_styling(kable(x = cleaning_log_other, longtable = T, booktabs = T, linesep = "", align = "c",
+#                     caption = "'Other' answers"),
+#               position = "center")
 ```
 
 
 ## cleaning log
 cleaning log will be provided in separate excel file. This is currently not being written as deemed unneccesary for now.
-```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE,include= FALSE}
+```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE, include= FALSE}
 all_cleaning_log$duration_cl$old_value <- all_cleaning_log$duration_cl$old_value %>% as.character()
 final_cleaning_log <- do.call("bind_rows",all_cleaning_log)
 

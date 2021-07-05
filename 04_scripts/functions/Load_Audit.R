@@ -1,43 +1,56 @@
-# Load Audid Function Script
-# Author: Someone mehedi?
-#
-# This script does...
+# Load Audit - Function Script
+# Author: Mehedi?
+# 2021
 
-Load_Audit<-function(data,
-                     path.to.zip,
-                     path.to.unzip,
-                     copy.zip=TRUE,
-                     path.to.copy.zip,
-                     filter.column = "informed_consent",
-                     filter.on = "yes",
-                     uuid.column ="X_uuid",
-                     delete.unzipped = TRUE,
-                     days.ago.reported = 0){
+# This script reads the audit files from the surveys. These contain the time (in milli seconds) that the questions were completed. This script unzips the audit files, extracts the data and then returns audit data that corresponds to the desired surveys being checked. The main function this is being used for is to calculate the durations of surveys so that they can be checked for potential errors/issues.
+
+# On of the potential issues is that the audit files can come with very large filepaths that are too long to be unzipped into the folders that they are already in. They may therefore need to be unzipped into higher folders and then deleted (deletion is contained in the function).
+
+Load_Audit <- function(data,
+                       path.to.zip,
+                       path.to.unzip,
+                       copy.zip=TRUE,
+                       path.to.copy.zip,
+                       filter.column = "informed_consent",
+                       filter.on = "yes",
+                       uuid.column ="X_uuid",
+                       delete.unzipped = TRUE,
+                       days.ago.reported = 0){
 
   # If desired, copy the zip file to a new location:
-  if(copy.zip==TRUE){file.copy(from = path.to.zip, to = path.to.copy.zip)}
+  if(copy.zip==TRUE){file.copy(from = path.to.zip, to = path.to.copy.zip, overwrite = TRUE)}
 
-  # Unzip the
+  # Unzip the files to a tempporary location:
   unzip(path.to.zip, exdir = path.to.unzip)
-  all_uuid_df<-data.frame(all_uuids=basename(dirname(list.files(path_unzip, recursive=TRUE))),
-                          all_paths=dirname(list.files(path_unzip, recursive=TRUE, full.names = TRUE)))
-  data$filter.col<- data[[filter.column]]
-  filtered_uuid_df<- all_uuid_df[all_uuid_df$all_uuids %in% data[data$filter.col==filter.on,uuid.column],]
-  filtered_audit_dirs<-filtered_uuid_df[,"all_paths"] %>% as.character()
-  filtered_audit_csvs<-list.files(filtered_audit_dirs, recursive = TRUE, full.names=TRUE)
-  data<-filtered_audit_csvs %>%
-    purrr::map(readr::read_csv)
-  names(data)<-filtered_uuid_df$all_uuids
+
+  # Get the Uuids and directory names from the audit file/s:
+  all_uuid_df <- data.frame(all_uuids = basename(dirname(list.files(path_unzip, recursive=TRUE))),
+                            all_paths = dirname(list.files(path_unzip, recursive=TRUE, full.names = TRUE)))
+
+  # Create a column in the dataset that is a copy of the desired variable (probably informed consent, returning surveys with consent):
+  data$filter.col <- data[[filter.column]]
+
+  # Find the uuids that are in the audit:
+  filtered_uuid_df <- all_uuid_df[all_uuid_df$all_uuids %in% data[data$filter.col == filter.on, uuid.column],]
+
+  # Get the audit paths of the uuids of interest:
+  filtered_audit_dirs <- filtered_uuid_df[,"all_paths"] %>% as.character()
+
+  # Get the paths to the csvs we are interested in:
+  filtered_audit_csvs <- list.files(filtered_audit_dirs, recursive = TRUE, full.names=TRUE)
+
+  # Read in the csv data as a list (using map)
+  data <- purrr::map( readr::read_csv( file = filtered_audit_csvs)) # [BS: not sure why we're not using read.csv]
+
+  # Name the list of audits:
+  names(data) <- filtered_uuid_df$all_uuids
+
   if(delete.unzipped==TRUE){
-    delete_dir<-list.files(path_unzip,full.names = TRUE)
+    delete_dir <- list.files(path_unzip,full.names = TRUE)
     unlink(delete_dir, recursive=TRUE)
   }
+
   return(data)
-
 }
-
-
-
-
 
 
