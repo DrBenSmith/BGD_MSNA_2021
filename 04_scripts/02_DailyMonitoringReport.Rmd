@@ -400,7 +400,7 @@ hh_pattern_dont_know <- hh_yes_consent_daily_data %>% mutate(
 
 indv_pattern_dont_know <- indv_daily_data %>% mutate(
   "dont_know_rowsum" = 
-    rowSums(indv_daily_data[indv_select_one_dont_know_cols] == "dont_know",na.rm = T) +
+    rowSums(indv_daily_data[indv_select_one_dont_know_cols] == "dont_know", na.rm = T) +
     rowSums(indv_daily_data[indv_dont_know_mltiple_cols_name], na.rm = T)) %>%
   dplyr::group_by(X_uuid) %>% 
   dplyr::summarise(indv_dont_know_rowsum = sum(dont_know_rowsum, na.rm = T)) %>%
@@ -487,7 +487,6 @@ kable_styling(kable(x = individuals_difficulties, longtable = T, booktabs = T, l
 
 shelter_issues_reason 1
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# -------------------------------------------------------------------------
 
 ```
 
@@ -505,7 +504,7 @@ shelter_issues_reason_inconsistency <- hh_yes_consent_daily_data %>% mutate(
   select(reported_date, X_uuid, enumerator_id, shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there)
 
 kable_styling(kable(x = shelter_issues_reason_inconsistency, longtable = T, booktabs = T, linesep = "", align = "c",
-                    caption = "shelter_issues_reason 1"),
+                    caption = "shelter_issues_reason 2"),
               position = "center")
 ```
 
@@ -630,9 +629,8 @@ kable_styling(kable(x = group_nfi_inconsistency, longtable = T, booktabs = T, li
 
 ```
 
+health_distance
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# -------------------------------------------------------------------------
-# health_distance
 # TODO - this may need edits so that it uses all data, not daily.
 health_distance_inconsistensy <- hh_yes_consent_daily_data %>% mutate(
   health_distance_mean = mean(health_distance,na.rm = T),
@@ -703,7 +701,7 @@ kable_styling(kable(x = health_service_inconsistency, longtable = T, booktabs = 
 
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
-#group_send_back [CAMPS ONLY]
+# group_send_back [CAMPS ONLY]
 
 # kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
 #                     caption = "..."),
@@ -712,53 +710,152 @@ kable_styling(kable(x = health_service_inconsistency, longtable = T, booktabs = 
 
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
-#group_send_back [HOST ONLY]
+# group_send_back [HOST ONLY]
 
 # kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
 #                     caption = "..."),
 #               position = "center")
 ```
 
+Set up some age range for the following check:
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# -------------------------------------------------------------------------
-# distance_learning_barriers
 
-# TODO - missing inputs
-# distance_learning_barriers_inconsistency_girls <- hh_yes_consent_daily_data %>% mutate(
-#   distance_learning_barriers_inconsistency_girls = case_when((distance_learning_barriers_girls.working_outside_home==1 & 
-#                                                                 child_working_long_hours != "yes")|
-#                                                                (distance_learning_barriers_girls.lack_content_older_children==1 & 
-#                                                                   # girl_15_18_count==0 & girl_19_24_count==0)|
-#                                                                   girl_15_18_count==0) |
-#                                                                (distance_learning_barriers_girls.lack_content_younger_children==1 & 
-#                                                                   # girl_4_5_count==0 & girl_3_0_count==0)|
-#                                                                   girl_4_5_count==0)|
-#                                                                (distance_learning_barriers_girls.lack_light==1 & 
-#                                                                   (solar_lamps=="yes"|
-#                                                                      living_space_issues.lack_lighting_inside != 1))|
-#                                                                (distance_learning_barriers_girls.marriage_pregnancy==1 & 
-#                                                                   (girls_married== "yes"|
-#                                                                      child_marriage!="yes"))
-#                                                              ~"yes", T~ NA_character_)) %>% 
-#   filter(distance_learning_barriers_inconsistency_girls=="yes") %>%
-#   select(reported_date, X_uuid, enumerator_id, distance_learning_barriers_girls, girl_15_18_count,
-#          girl_4_5_count, solar_lamps, living_space_issues, girls_married, child_marriage) # girl_19_24_count, girl_3_0_count
-# 
-# distance_learning_barriers_inconsistency_boys<- hh_yes_consent_daily_data %>% mutate(
-#   distance_learning_barriers_inconsistency_boys = case_when((distance_learning_barriers_boys.working_outside_home==1 & child_working_long_hours != "yes")|
-#                                                               (distance_learning_barriers_boys.lack_content_older_children==1 & boy_15_18_count==0 & boy_19_24_count==0)|
-#                                                               (distance_learning_barriers_boys.lack_content_younger_children==1 & boy_4_5_count==0 & boy_3_0_count==0)|
-#                                                               (distance_learning_barriers_boys.lack_light==1 & (solar_lamps=="yes"|
-#                                                                                                                   living_space_issues.lack_lighting_inside != 1))|
-#                                                               (distance_learning_barriers_boys.marriage_pregnancy==1 & (boys_married== "yes"| child_marriage!=
-#                                                                                                                           "yes"))~"yes", T~ NA_character_)) %>%
-#   filter(distance_learning_barriers_inconsistency_boys=="yes") %>%
-#   select(reported_date,X_uuid,enumerator_id,distance_learning_barriers_boys,boy_15_18_count,
-#          boy_19_24_count,boy_4_5_count,boy_3_0_count,solar_lamps,living_space_issues,boys_married,child_marriage)
+if(population == "refugee"){
+  
+  young_girls = c("girl_3_count", "girl_4_5_count") ; older_girls = c("girl_15_18_count", "girl_19_24_count")
+  young_boys = c("boy_3_count", "boy_4_5_count") ; older_boys = c("boy_15_18_count", "boy_19_24_count")
+  } else {
+    young_girls = "girl_4_5_count" ; older_girls = "girl_15_18_count"
+    young_boys = "boy_4_5_count" ; older_boys = "boy_15_18_count"
+  }
 
-# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
-#                     caption = "..."),
-#               position = "center")
+```
+
+distance_learning_barriers (girls)
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
+LI_dist_learning_barriers_girls <- hh_yes_consent_daily_data %>% mutate(
+  LI_dist_learning_barriers_girls = case_when((
+    (distance_learning_barriers_girls.working_outside_home == 1 & child_working_long_hours != "yes") |
+      (distance_learning_barriers_girls.lack_content_older_children==1 & all_of(older_girls)==0) |
+      (distance_learning_barriers_girls.lack_content_younger_children==1 & all_of(young_girls)==0) |
+      (distance_learning_barriers_girls.lack_light==1 & (solar_lamps=="yes")) |
+      (distance_learning_barriers_girls.marriage_pregnancy==1 & (girls_married== "yes" | child_marriage!="yes"))
+    )~"yes", T~ NA_character_)) %>%
+  filter(LI_dist_learning_barriers_girls=="yes") %>%
+  select(reported_date, X_uuid, enumerator_id, distance_learning_barriers_girls, young_girls,
+         older_girls, solar_lamps, girls_married, child_marriage)
+
+kable_styling(kable(x = LI_dist_learning_barriers_girls, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "LI_dist_learning_barriers_girls"),
+              position = "center")
+
+```
+
+distance_learning_barriers (boys)
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
+LI_dist_learning_barriers_boys <- hh_yes_consent_daily_data %>% mutate(
+  LI_dist_learning_barriers_boys = case_when((
+    (distance_learning_barriers_boys.working_outside_home == 1 & child_working_long_hours != "yes") |
+      (distance_learning_barriers_boys.lack_content_older_children==1 & all_of(older_boys)==0) |
+      (distance_learning_barriers_boys.lack_content_younger_children==1 & all_of(young_boys)==0) |
+      (distance_learning_barriers_boys.lack_light==1 & (solar_lamps=="yes")) |
+      (distance_learning_barriers_boys.marriage_pregnancy==1 & (boys_married== "yes" | child_marriage!="yes"))
+    )~"yes", T~ NA_character_)) %>%
+  filter(LI_dist_learning_barriers_boys=="yes") %>%
+  select(reported_date, X_uuid, enumerator_id, distance_learning_barriers_boys, young_boys,
+         older_boys, solar_lamps, boys_married, child_marriage)
+
+
+kable_styling(kable(x = LI_dist_learning_barriers_boys, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "LI_dist_learning_barriers_boys"),
+              position = "center")
+```
+
+
+send_back_barriers_girls
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
+send_back_barriers_girls <- hh_yes_consent_daily_data %>% mutate(
+  send_back_barriers_girls = case_when((
+    (distance_learning_barriers_girls.working_outside_home == 1 & child_working_long_hours != "yes") |
+      (send_back_barriers_girls.lack_content_older_children==1 & all_of(older_girls)==0) |
+      (send_back_barriers_girls.lack_content_younger_children==1 & all_of(young_girls)==0) |
+      # (send_back_barriers_girls.lack_light==1 & (solar_lamps=="yes")) | # Lack of light does not exist.
+      (send_back_barriers_girls.marriage_pregnancy==1 & (girls_married== "yes" | child_marriage!="yes"))
+    )~"yes", T~ NA_character_)) %>%
+  filter(send_back_barriers_girls=="yes") %>%
+  select(reported_date, X_uuid, enumerator_id, distance_learning_barriers_girls, young_girls,
+         older_girls, solar_lamps, girls_married, child_marriage)
+
+kable_styling(kable(x = send_back_barriers_girls, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "send_back_barriers_girls"),
+              position = "center")
+
+```
+
+send_back_barriers_boys
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
+LI_send_back_barriers_boys <- hh_yes_consent_daily_data %>% mutate(
+  LI_send_back_barriers_boys = case_when((
+    (send_back_barriers_boys.working_outside_home == 1 & child_working_long_hours != "yes") |
+      (send_back_barriers_boys.lack_content_older_children==1 & all_of(older_boys)==0) |
+      (send_back_barriers_boys.lack_content_younger_children==1 & all_of(young_boys)==0) |
+      # (send_back_barriers_boys.lack_light==1 & (solar_lamps=="yes")) | # send_back_barriers_boys.lack_light does not exist
+      (send_back_barriers_boys.marriage_pregnancy==1 & (boys_married== "yes" | child_marriage!="yes"))
+    )~"yes", T~ NA_character_)) %>%
+  filter(LI_send_back_barriers_boys=="yes") %>%
+  select(reported_date, X_uuid, enumerator_id, distance_learning_barriers_boys, young_boys,
+         older_boys, solar_lamps, boys_married, child_marriage)
+
+
+kable_styling(kable(x = LI_send_back_barriers_boys, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "LI_send_back_barriers_boys"),
+              position = "center")
+```
+
+send_back_challenges_girls
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
+send_back_challenges_girls <- hh_yes_consent_daily_data %>% mutate(
+  send_back_challenges_girls = case_when((
+    (send_back_challenges_girls.working_outside_home == 1 & child_working_long_hours != "yes") |
+      (send_back_challenges_girls.lack_content_older_children==1 & all_of(older_girls)==0) |
+      (send_back_challenges_girls.lack_content_younger_children==1 & all_of(young_girls)==0) |
+      # (send_back_challenges_girls.lack_light==1 & (solar_lamps=="yes")) | # .lack_light does not exist
+      (send_back_challenges_girls.marriage_pregnancy==1 & (girls_married== "yes" | child_marriage!="yes"))
+    )~"yes", T~ NA_character_)) %>%
+  filter(send_back_challenges_girls=="yes") %>%
+  select(reported_date, X_uuid, enumerator_id, distance_learning_barriers_girls, young_girls,
+         older_girls, solar_lamps, girls_married, child_marriage)
+
+kable_styling(kable(x = send_back_challenges_girls, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "send_back_challenges_girls"),
+              position = "center")
+
+```
+
+send_back_challenges_boys
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
+send_back_challenges_boys <- hh_yes_consent_daily_data %>% mutate(
+  send_back_challenges_boys = case_when((
+    (send_back_challenges_boys.working_outside_home == 1 & child_working_long_hours != "yes") |
+      (send_back_challenges_boys.lack_content_older_children==1 & all_of(older_boys)==0) |
+      (send_back_challenges_boys.lack_content_younger_children==1 & all_of(young_boys)==0) |
+      # (send_back_challenges_boys.lack_light==1 & (solar_lamps=="yes")) | # .lack_light does not exist
+      (send_back_challenges_boys.marriage_pregnancy==1 & (boys_married== "yes" | child_marriage!="yes"))
+    )~"yes", T~ NA_character_)) %>%
+  filter(send_back_challenges_boys=="yes") %>%
+  select(reported_date, X_uuid, enumerator_id, distance_learning_barriers_boys, young_boys,
+         older_boys, solar_lamps, boys_married, child_marriage)
+
+
+kable_styling(kable(x = send_back_challenges_boys, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "send_back_challenges_boys"),
+              position = "center")
 ```
 
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
@@ -795,22 +892,26 @@ kable_styling(kable(x = nutrition_barriers_not_accessed_inconsistency, longtable
               position = "center")
 ```
 
+Nutrition 2
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# -------------------------------------------------------------------------
-# Nutrition 2
 
 # kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
 #                     caption = "..."),
 #               position = "center")
 ```
 
+PLW admitted: not tested, but should work...
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# -------------------------------------------------------------------------
-# PLW admitted
+if(population=="refugee"){
 
-# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
-#                     caption = "..."),
-#               position = "center")
+  # case_when(hh_yes_consent_daily_data$plw_admitted > hh_yes_consent_daily_data$plw_sfs ~ "yes", TRUE~NA_character_)
+  plw = hh_yes_consent_daily_data[hh_yes_consent_daily_data$plw_admitted > hh_yes_consent_daily_data$plw_sfs, 
+                                  c(reported_date, X_uuid, enumerator_id, plw_admitted, plw_sfs)]
+    
+  kable_styling(kable(x = plw, longtable = T, booktabs = T, linesep = "", align = "c",
+                      caption = "flag if plw_admitted > plw_sfs "), position = "center")
+}
+
 ```
 
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
@@ -822,33 +923,85 @@ kable_styling(kable(x = nutrition_barriers_not_accessed_inconsistency, longtable
 #               position = "center")
 ```
 
+Food Barriers - not checked yet
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# -------------------------------------------------------------------------
-# Food Barriers
-
-# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
-#                     caption = "..."),
-#               position = "center")
+if(population=="refugee"){
+  
+  food_barriers <- hh_yes_consent_daily_data %>% mutate(
+    food_barriers = case_when(((food_barriers.no_assistance == 1) |
+                                 (food_barriers.feedback==1 & 
+                                    feedback.did_not_know_where!=1 & 
+                                    feedback.could_not_go_out!=1) |
+                                 (food_barriers.lack_response==1 & 
+                                    feedback.did_but_it_was_not_responded != 1 & 
+                                    feedback.did_but_the_response_was_not_satisfactory != 1))~"yes", T~NA_character_)) %>%
+      filter(food_barriers=="yes") %>% 
+      select(reported_date, X_uuid, enumerator_id, food_barriers, feedback)
+  
+kable_styling(kable(x = food_barriers, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "food_barriers"),
+              position = "center")
+}
 ```
 
+group_livelihood_coping
+*Cara* - (child_marriage == "yes" & (gir7ls_married == 0 & boys_married == 0)
+This was "child_marriage AND (girls_married == 0 AND boys_married == 0)" in the instructions but I have edited the start. Is this correct that "child_marriage" equals yes to qualify?
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# -------------------------------------------------------------------------
-# group_livelihood_coping
+# Set income columns of interest for 2nd check: [this is no longer desired].
+# main_income = c("main_income_source.salaried_work", "main_income_source.casual_labor",
+#                 "main_income_source.business", "main_income_source.cash_for_work",
+#                 "main_income_source.donations")
+# if(population=="host"){main_income = c(main_income, "main_income_source.government_benefits")}
 
-# group_livelihood_coping_inconsistency<- hh_yes_consent_daily_data %>% mutate(
-#   group_livelihood_coping_inconsistency= case_when(begging=="yes"|
-#                                              (depending_on_food_rations== "yes"& (hh$income_source.salaried_work==1|hh$income_source.casual_labor==1| hh$income_source.business==1|hh$income_source.government_benefits==1|hh$income_source.cash_for_work==1|hh$income_source.donations==1))|
-#                                                      ((hh$selling_food_rations=="yes"|hh$selling_nfis=="yes")& hh$income_source.sale_assistance==0)
-# )
-# )
-# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
-#                     caption = "..."),
-#               position = "center")
+
+# Find individual ages as TRUE/FALSE:
+age = colnames(hh_yes_consent_daily_data)[grep(pattern = "ind_age", colnames(hh_yes_consent_daily_data))]
+age = hh_yes_consent_daily_data[,age]
+adult = t(case_when(age>=18~TRUE, age<18~FALSE))
+child = t(case_when(age>=18~FALSE, age<18~TRUE))
+
+# Find whether individuals work as TRUE/FALSE:
+income = colnames(hh_yes_consent_daily_data)[grep(pattern = "individuals_income.individual", colnames(hh_yes_consent_daily_data))]
+income = hh_yes_consent_daily_data[,income]
+income = t(case_when(income==1~TRUE, income==0~FALSE))
+# rownames(income) = hh_yes_consent_daily_data$X_uuid
+
+# Find which individuals can work but are over 18 then summerise this to a single vector:
+child_income = child * income ; child_income = rowSums(child_income, na.rm = TRUE)
+adult_income = adult * income ; adult_income = rowSums(adult_income, na.rm = TRUE)
+
+# imcome_age = data.frame("X_uuid" = rownames(imcome_age), "imcome_age" = rowSums(imcome_age, na.rm = TRUE), row.names = NULL)
+# TODO - I think that this should work, but you should check it once you have more data.
+
+
+# Do the checks:
+group_livelihood_coping_inconsistency <- hh_yes_consent_daily_data %>% mutate(
+  group_livelihood_coping_inconsistency = case_when(
+    begging=="yes" |
+      # (hh_yes_consent_daily_data$depending_on_food_rations== "yes" & any(hh_yes_consent_daily_data$main_income==1)
+       # (hh$income_source.salaried_work==1| hh$income_source.casual_labor==1|hh$income_source.business==1 | hh$income_source.government_benefits==1 |
+       #     hh$income_source.cash_for_work==1 | hh$income_source.donations==1))| ((hh$selling_food_rations=="yes" | hh$selling_nfis=="yes") &
+      ((selling_food_rations == "yes" | selling_nfis == "yes") & main_income_source.sale_assistance != 1) |
+      (child_working_long_hours == "yes" & child_income ==0) |
+      (child_marriage == "yes" & girls_married == 0 & boys_married == 0) |
+      (risk_jobs == "yes" & rowSums(income, na.rm = TRUE)) |
+      (adults_working_long_hours == "yes" & adult_income == 0)~"yes", TRUE~NA_character_)) %>%
+  filter(group_livelihood_coping_inconsistency=="yes") %>%
+  select(c("reported_date", "X_uuid", "enumerator_id", "group_livelihood_coping_inconsistency", "begging",
+           "selling_food_rations", "selling_nfis", "main_income_source"))
+
+colnames(group_livelihood_coping_inconsistency) = gsub(x = colnames(group_livelihood_coping_inconsistency), 
+                                                       pattern = "_", replacement = " ")
+
+kable_styling(kable(x = group_livelihood_coping_inconsistency, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "group_livelihood_coping_inconsistency"),
+              position = "center")
 ```
 
+group_livelihood_coping2
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# -------------------------------------------------------------------------
-# group_livelihood_coping2
+
 # kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
 #                     caption = "..."),
 #               position = "center")
@@ -871,8 +1024,10 @@ if(population=="host"){dist_learning_cols = c(
   "distance_learning_girls_4_5", "distance_learning_girls_6_14", "distance_learning_girls_15_18",
   "distance_learning_boys_4_5", "distance_learning_boys_6_14", "distance_learning_boys_15_18")
 } else {dist_learning_cols = c(
-  "distance_learning_girls_3", "distance_learning_girls_4_5", "distance_learning_girls_6_14", "distance_learning_girls_15_18", "distance_learning_girls_19_24",
-  "distance_learning_boys_3",	"distance_learning_boys_4_5", "distance_learning_boys_6_14",	"distance_learning_boys_15_18", "distance_learning_boys_19_24")
+  "distance_learning_girls_3", "distance_learning_girls_4_5", "distance_learning_girls_6_14",
+  "distance_learning_girls_15_18", "distance_learning_girls_19_24", "distance_learning_boys_3",
+  "distance_learning_boys_4_5", "distance_learning_boys_6_14",	"distance_learning_boys_15_18",
+  "distance_learning_boys_19_24")
 }
 
 coping_reason_inconsistency_2 <- hh_yes_consent_daily_data %>% mutate(
@@ -932,35 +1087,75 @@ kable_styling(kable(x = coping_reason_inconsistency_2, longtable = T, booktabs =
 
 ```
 
+Income_source
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# ------------------------------------------------------------------------- 
-# Income_source
 
 # kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
 #                     caption = "..."),
 #               position = "center")
 ```
 
+Amount Outliers
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # -------------------------------------------------------------------------
-# assistance_amount
-# salaried_work_amount
-# casual_labor_amount
-# casual_labor_days
-# business_amount
-# business_days
-# government_benefits_amount
-# remittances_amount
-# family_friends_amount
-# cfw_amount
-# cfw_days
-# donations_amount
-# sale_assistance_amount
-# other_amount 
+amounts = c("assistance_amount", "salaried_work_amount", "casual_labor_amount", "business_amount",
+            "remittances_amount", "family_friends_amount", "cfw_amount", "donations_amount",
+            "sale_assistance_amount", "other_amount")
+if(population=="host"){amounts = c(amounts, "government_benefits_amount")}
 
-# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c",
-#                     caption = "..."),
-#               position = "center")
+# Sum the amounts:
+hh_yes_consent_full_data$total_amount = rowSums(x = hh_yes_consent_full_data[,amounts], na.rm = TRUE)
+
+# Set up a matrix to hold the stats:
+amounts = matrix(ncol = length(amounts)+1,
+                 nrow = 4, data = NA, 
+                 dimnames = list(c("mean", "SD", "mean-2SD", "mean+2SD"), 
+                                 c(amounts, "total_amount")))
+
+# Extract all of the expenditure data: 
+amounts_data <- hh_yes_consent_full_data[,colnames(amounts)]
+
+# Compute the stats:
+for(e in colnames(amounts)){
+  amounts[1,e] = mean(amounts_data[,e], na.rm = TRUE)
+  amounts[2,e] = sd(x = amounts_data[,e], na.rm = TRUE)
+  amounts[3,e] = amounts[1,e] - 2*amounts[2,e]
+  amounts[4,e] = amounts[1,e] + 2*amounts[2,e]
+} # The above makes NaN and NA values, though I do not think that will affect anything.
+
+# Calculate the daily amount totals:
+hh_yes_consent_daily_data$total_amount <- rowSums(hh_yes_consent_daily_data[, colnames(amounts)[1:(ncol(amounts)-1)]], na.rm = TRUE)
+
+# Create a subset of the data to use for calculations
+amounts_data_day <- hh_yes_consent_daily_data[, c("reported_date", "X_uuid", "enumerator_id", colnames(amounts))]
+
+# Find instances in tha daily data where values are outliers:
+amounts_data_day <- amounts_data_day %>% mutate(
+  "outlier" = case_when((
+    (assistance_amount < amounts[3, "assistance_amount"] | assistance_amount > amounts[4, "assistance_amount"]) |
+      (salaried_work_amount < amounts[3, "salaried_work_amount"] | salaried_work_amount > amounts[4, "salaried_work_amount"]) |
+      (casual_labor_amount < amounts[3, "casual_labor_amount"] | casual_labor_amount > amounts[4, "casual_labor_amount"]) |
+      (business_amount < amounts[3, "business_amount"] | business_amount > amounts[4, "business_amount"]) |
+      (remittances_amount < amounts[3, "remittances_amount"] | remittances_amount > amounts[4, "remittances_amount"]) |
+      (family_friends_amount < amounts[3, "family_friends_amount"] | family_friends_amount > amounts[4, "family_friends_amount"]) |
+      (cfw_amount < amounts[3, "cfw_amount"] | cfw_amount > amounts[4, "cfw_amount"]) |
+      (sale_assistance_amount < amounts[3, "sale_assistance_amount"] | sale_assistance_amount > amounts[4, "sale_assistance_amount"]) |
+      (other_amount < amounts[3, "other_amount"] | other_amount > amounts[4, "other_amount"]) |
+      (amounts_data_day[,(ncol(amounts_data_day)-1)] < amounts[3, (ncol(amounts)-1)] |
+         amounts_data_day[,(ncol(amounts_data_day)-1)] > amounts[4, (ncol(amounts)-1)]) | 
+      # ^^ This is for host only (government_benefits). 
+      # If it exists as penultimate column, it will be checked, else other_amount will be harmlessly rechecked
+      (total_amount < amounts[3, "total_amount"] | total_amount > amounts[4, "total_amount"]))~"yes", 
+    TRUE~NA_character_)) %>%
+  filter("outlier"=="yes") %>%
+  select(c("reported_date", "X_uuid", "enumerator_id", colnames(amounts)))
+  # Sajnin has done this the opposite way around to you, where she subsets columns afterwards, but, doing it this way means that we can deal easily with government benefits.
+
+colnames(amounts_data_day) = gsub(x = colnames(amounts_data_day), pattern = "_", replacement = " ")
+
+kable_styling(kable(x = amounts_data_day, longtable = T, booktabs = T, linesep = "", align = "c",
+                    caption = "amounts_data_day"),
+              position = "center")
 ```
 
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
@@ -1036,7 +1231,7 @@ Expenditure: Should flag unusually high/low values for each and the sum
 expenditures = c("shelter_expenditure", "infreq_nfi_expenditure", "health_expenditure", "education_expenditure", "debt_expenditure")
 
 # Sum the expenditures:
-hh_yes_consent_full_data$expenditure_total = rowSums(hh_yes_consent_full_data[,expenditures])
+hh_yes_consent_full_data$expenditure_total = rowSums(hh_yes_consent_full_data[,expenditures], na.rm = TRUE)
 
 # Set up a matrix to hold the stats:
 expenditures = matrix(ncol = 6, nrow = 4, data = NA, 
@@ -1058,7 +1253,7 @@ for(e in colnames(expenditures)){
 
 
 # Run through the daily dataset and find instances where this values are outliers:
-hh_yes_consent_daily_data$expenditure_total <- rowSums(hh_yes_consent_daily_data[, colnames(expenditures)[1:5]])
+hh_yes_consent_daily_data$expenditure_total <- rowSums(hh_yes_consent_daily_data[, colnames(expenditures)[1:5]], na.rm = TRUE)
 expenditures_data_day <- hh_yes_consent_daily_data[, c("reported_date", "X_uuid", "enumerator_id", colnames(expenditures))]
 
 expenditures_data_day <- expenditures_data_day %>% mutate(
