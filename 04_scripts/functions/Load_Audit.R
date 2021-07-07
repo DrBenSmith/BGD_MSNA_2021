@@ -6,6 +6,7 @@
 
 # On of the potential issues is that the audit files can come with very large filepaths that are too long to be unzipped into the folders that they are already in. They may therefore need to be unzipped into higher folders and then deleted (deletion is contained in the function).
 
+# ERROR - one of the problems may be that the zip file may have subfolders with different names (e.g. msna_test_account or msna_2021
 Load_Audit <- function(data,
                        path.to.zip,
                        path.to.unzip,
@@ -20,7 +21,7 @@ Load_Audit <- function(data,
   # If desired, copy the zip file to a new location:
   if(copy.zip==TRUE){file.copy(from = path.to.zip, to = path.to.copy.zip, overwrite = TRUE)}
 
-  # Unzip the files to a tempporary location:
+  # Unzip the files to a temporary location:
   unzip(path.to.zip, exdir = path.to.unzip)
 
   # Get the Uuids and directory names from the audit file/s:
@@ -37,16 +38,16 @@ Load_Audit <- function(data,
   filtered_audit_dirs <- filtered_uuid_df[,"all_paths"] %>% as.character()
 
   # Get the paths to the csvs we are interested in:
-  filtered_audit_csvs <- list.files(filtered_audit_dirs, recursive = TRUE, full.names=TRUE)
+  filtered_audit_csvs <- paste0(filtered_audit_dirs, "/audit.csv") #list.files(filtered_audit_dirs, recursive = TRUE, full.names=TRUE)
 
   # Read in the csv data as a list (using map)
-  data <- purrr::map( readr::read_csv( file = filtered_audit_csvs)) # [BS: not sure why we're not using read.csv]
+  data <- filtered_audit_csvs %>% purrr::map(function(x) readr::read_csv(x)) #( file = filtered_audit_csvs)) # [BS: not sure why we're not using read.csv]
 
   # Name the list of audits:
   names(data) <- filtered_uuid_df$all_uuids
 
   if(delete.unzipped==TRUE){
-    delete_dir <- list.files(path_unzip,full.names = TRUE)
+    delete_dir <- list.files(path_unzip, full.names = TRUE)
     unlink(delete_dir, recursive=TRUE)
   }
 
