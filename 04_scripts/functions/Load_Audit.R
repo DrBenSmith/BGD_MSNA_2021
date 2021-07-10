@@ -15,14 +15,15 @@ Load_Audit <- function(data,
                        filter.column = "informed_consent",
                        filter.on = "yes",
                        uuid.column ="X_uuid",
-                       delete.unzipped = TRUE,
-                       days.ago.reported = 0){
+                       delete.unzipped = TRUE){ # days.ago.reported = 0
 
+  # setwd("C:/Users/Ben SMITH/SynDrive/REACH_BGD/REACH/Ongoing/70XXX - J-MSNA 2021/04 Data Analysis/04_scripts")
+  # getwd()
   # If desired, copy the zip file to a new location:
   if(copy.zip==TRUE){file.copy(from = path.to.zip, to = path.to.copy.zip, overwrite = TRUE)}
 
   # Unzip the files to a temporary location:
-  unzip(path.to.zip, exdir = path.to.unzip)
+  unzip(path.to.zip, exdir = path.to.unzip, overwrite = TRUE)
 
   # Get the Uuids and directory names from the audit file/s:
   all_uuid_df <- data.frame(all_uuids = basename(dirname(list.files(path_unzip, recursive=TRUE))),
@@ -41,7 +42,8 @@ Load_Audit <- function(data,
   filtered_audit_csvs <- paste0(filtered_audit_dirs, "/audit.csv") #list.files(filtered_audit_dirs, recursive = TRUE, full.names=TRUE)
 
   # Read in the csv data as a list (using map)
-  data <- filtered_audit_csvs %>% purrr::map(function(x) readr::read_csv(x)) #( file = filtered_audit_csvs)) # [BS: not sure why we're not using read.csv]
+  data <- filtered_audit_csvs %>% purrr::map(function(x) readr::read_csv(x))
+        #( file = filtered_audit_csvs)) # [BS: read_csv is faster than read.csv]
 
   # Name the list of audits:
   names(data) <- filtered_uuid_df$all_uuids
