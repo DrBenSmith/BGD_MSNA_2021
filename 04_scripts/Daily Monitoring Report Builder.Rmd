@@ -8,13 +8,73 @@ code_folding: hide
 ---
 
 
-```{r For_Testing, echo=FALSE}
-# --- Testing:
-# The following snippet should be used for testing, then removed for the actual runs:
-# population<-c("host","refugee")[2]
-# write_csv_output<-c("yes","no")[2]
-# day_to_run <- Sys.Date() # -1
+```{r For_Testing, eval=TRUE, echo=FALSE}
+# TODO - check that eval=TRUE
+# https://stackoverflow.com/questions/64904061/kable-styling-inside-a-loop
+# # --- Testing:
 
+# Data Paths (CHANGE) -----------------------------------------------------
+
+population      <- c("host","refugee")[1]
+
+data_path     <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day4/")
+audit_zip_dir <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day4/")
+
+# CAMP MONDAY
+# data_file_name  <- "Camp_JMSNA_2021_-_all_versions_-_False_-_2021-07-12-12-57-45.xlsx"
+# audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_12_13_00_34"
+
+# CAMP TUESDAY
+# data_file_name  <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-13-13-15-57.xlsx"
+# audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_13_13_17_34"
+
+# HOST MONDAY
+# data_file_name  <- "Host_JMSNA_2021_-_all_versions_-_False_-_2021-07-12-12-46-22.xlsx"
+# audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_12_12_47_37"
+
+# CAMP Wednesday
+# data_file_name  <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-15-12-31-51.xlsx"
+# audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_15_12_33_07"
+
+# HOST Wednesday
+data_file_name  <- "Host_JMSNA_2021_-_latest_version_-_False_-_2021-07-15-13-04-42.xlsx"
+audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_15_13_05_28"
+
+
+
+# Setup -------------------------------------------------------------------
+
+# rm(list = ls())
+library(rmarkdown)
+day_to_run <- Sys.Date()
+write_csv_output <-c("yes","no")[1]
+
+
+# Sample Data (change if not working on Ben's PC) -------------------------
+
+if(population=="refugee"){
+  kobo_tool <- "../01 Design/3_Tools/Quant/Kobo/Camp_JMSNA_2021.xlsx"
+  sample_sheet_path = "C:/Users/Ben SMITH/Documents/Bangladesh/REACH Projects/MSNA 2021/JMSNA_sample_for_verification_camps.xlsx"
+}
+if(population=="host"){
+  kobo_tool <- "../01 Design/3_Tools/Quant/Kobo/Host_JMSNA_2021.xlsx"
+  sample_sheet_path = "C:/Users/Ben SMITH/Documents/Bangladesh/REACH Projects/MSNA 2021/JMSNA_Host_Sample_for_verification.xlsx"
+}
+
+
+# Output paths (should not need to change) --------------------------------
+
+hh_path <- paste0("02_inputs/", population, "/01_raw_data/hh.csv")
+indv_path <- paste0("02_inputs/", population, "/01_raw_data/indv.csv")
+indv_dis_repeat_path <- paste0("02_inputs/", population, "/01_raw_data/indv2.csv")
+
+date_log_path <- paste0("05_outputs/01_daily_monitoring/", population, "/date_log/")
+cleaning_log_path <- paste0("05_outputs/03_cleaning_log/", population, "/")
+
+copy_zip_to <- paste0("05_outputs/01_daily_monitoring/", population, "/audit/", day_to_run,".zip")
+path_unzip <- "06_others/audit_temp"
+audit_zipfile <- paste0(audit_zip_dir, audit_name, ".zip")
+audit_node <- paste0("/", unlist(strsplit(audit_name, "_"))[1], "/")
 
 ```
 
@@ -26,10 +86,11 @@ knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
 ```
 
 ```{r Libraries, echo=FALSE, include=FALSE, warning = FALSE, message=FALSE}
+
 # Preamble for setting up the data collection:
 
 # Set the default chuck settings:
-getwd()
+# getwd()
 # Load in libraries ... Surely these are more than we need?
 library(tidyr) # used for pivot_longer
 library(dplyr)
@@ -39,6 +100,7 @@ library(kableExtra) # install.packages("kableExtra")
 library(readxl)
 library(openxlsx)
 library(plotly)
+# library(knitr)
 
 source("04_scripts/functions/Load_Audit.R")
 source("04_scripts/functions/utils.R")
@@ -126,12 +188,12 @@ indv_dis_repeat <- read.csv(indv_dis_repeat_path, stringsAsFactors = FALSE, na.s
 
 # This section records the dates that the surveys were initially checked by this script. There will be a separate date_log_full file in the Data Analysis outputs folder for both the host and refugee datasets. This uses the hh datasets. It is only writen if 'output' == yes in the "daily_checks.R" script. This will output a date_log_full.csv file that contains all of the dates for each community as well as archiving .csv's that record each instance the date logs are written.   
 
-# TODO Change the name of this column to monitored_date so that it is a little clearer.
 
 # >>> REQUIRED ONLY ON THE FIRST DAY OF DATA COLLECTION
 # date_log_full <- data.frame("X_uuid" = hh[,"X_uuid"], "reported_date" = day_to_run)
 # write.csv(date_log_full, paste0(date_log_path,"date_log_full.csv"), row.names=FALSE)
 # <<<
+
 
 # Read in the previous date log:
 date_log <- read.csv(paste0(date_log_path, "date_log_full.csv"), 
@@ -193,7 +255,7 @@ if(write_csv_output == "yes"){
 ## 1. Daily Progress Tracking
 Community: **`r population`**
 
-Data path: `r data_path`
+Data path: `r paste0(data_path, data_file_name)`
 
 Total number of consenting household surveys taken so far for `r population` community is **`r length(which(hh$informed_consent=="yes"))`**.
 
@@ -249,13 +311,14 @@ kable_styling(kable_input = kable(x = survey_complete_by_reach, longtable = T, b
 # Currently this finds duplicates that are in all (including non consent), but only shows consenting daily data. 
 
 # Find duplicated IDs in ALL household data:
-duplicate_id = hh$respondent_id[duplicated(hh$respondent_id)]
+duplicate_id = hh_consent_full$respondent_id[duplicated(hh_consent_full$respondent_id)]
 
 # Filter this to include only those in the monitoring period:
-# duplicate_id = duplicate_id[duplicate_id %in% hh_consent_daily$respondent_id] : this is done below
+duplicate_id = duplicate_id[duplicate_id %in% hh_consent_daily$respondent_id]
 
 # Create a dataset of the basic data for those surveys with duplicated IDs:
-check_duplicate_respondent_id <- hh_consent_daily %>% 
+
+check_duplicate_respondent_id <- hh_consent_full %>% 
   filter(respondent_id %in% duplicate_id) %>%
   select(c("reported_date","X_uuid","enumerator_id","respondent_id", "enumerator_name", "team", "instance_name")) %>%
   arrange(respondent_id)
@@ -265,7 +328,7 @@ kable_styling(kable_input = kable(x = check_duplicate_respondent_id,
                                   caption = "Surveys where respondent_id is not unique"),
               position = "center")
 
-# Not sure what this does:...
+# Restructure if you would like to add it to the cleaning log
 # check_duplicate_respondent_id_pi_long <- check_duplicate_respondent_id %>% 
 #   pivot_longer(-c("reported_date","X_uuid","enumerator_id"), names_to = "questions", values_to = "old_value") %>% 
 #   mutate( survey_loop = "HH") %>% 
@@ -427,7 +490,7 @@ duration_df2$duration_minutes[is.infinite(duration_df2$duration_minutes)] = NA
 paste0("In this monitoring period, mean survey time is: ", round(mean(duration_df2$duration_minutes, na.rm = T),0), " minutes. ",
        "Median survey time is: ", round(median(duration_df2$duration_minutes, na.rm = T),0), " minutes.")
 
-plot_ly(x = duration_df2$duration_minutes, type = "box", name = "Duration", height = 200, frame = TRUE, text = duration_df2$uuid)
+plot_ly(x = duration_df2$duration_minutes, type = "box", name = "Duration (all data)", height = 200, frame = TRUE, text = duration_df2$uuid)
 ```
 
 ---
@@ -442,11 +505,11 @@ survey_time <- left_join(x = duration_df2,
 
 
 # Calculate the survey times of the surveys in the monitoring period only:
-survey_time_LT25 <- survey_time %>% filter(reported_date == day_to_run, duration_minutes <45) %>% rename("X_uuid"="uuid") # Don't think we need to filter by reported_date.
+survey_time_LT45 <- survey_time %>% filter(reported_date == day_to_run, duration_minutes <45) %>% rename("X_uuid"="uuid") # Don't think we need to filter by reported_date.
 
-survey_time_LT25 <- survey_time_LT25[order(survey_time_LT25$duration_minutes, decreasing = FALSE),]
+survey_time_LT45 <- survey_time_LT45[order(survey_time_LT45$duration_minutes, decreasing = FALSE),]
 
-kable_styling(kable(x = survey_time_LT25, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
+kable_styling(kable(x = survey_time_LT45, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
                     caption= "surveys which are completed in less than 45 min"),
               position = "center")
 
@@ -469,7 +532,7 @@ kable_styling(kable(x = survey_time_LT25, longtable = T, booktabs = T, linesep =
 
 ---
 
-#### b) Duration statistics by enumerator – average time per survey per enumerator for monitoring period
+#### b) Duration statistics by enumerator – average time per survey for whole data collection period
 [Here, some enumerators may be duplicated if they spell their names differently on different surveys.]
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # List the mean and median survey durations for each enumerator: 
@@ -544,12 +607,13 @@ kable_styling(kable_input = kable(x = duration_df3, longtable = T, booktabs = T,
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 # Count the number of surveys done by each enumerator
-overall_complete_by_enumerator <- data.frame(
   # Overall:
-  a = hh_consent_full  %>% group_by(enumerator_id) %>% summarise("Overall" = n()),
+  a = hh_consent_full  %>% group_by(enumerator_id) %>% summarise("Overall" = n())
   # In monitoring period
-  b = (hh_consent_daily %>% group_by(enumerator_id) %>% summarise("Monitoring_period" = n()))[2])
-
+  b = (hh_consent_daily %>% group_by(enumerator_id) %>% summarise("Monitoring_period" = n()))
+  
+overall_complete_by_enumerator = left_join(a,b)
+  
 colnames(overall_complete_by_enumerator) = c("enumerator_id", "Overall", "Monitoring period")
 
 # Print table
@@ -562,8 +626,6 @@ kable_styling(kable_input = kable(x = overall_complete_by_enumerator, longtable 
 
 #### e)	Check if enumerators selected dont_know for more than 15 questions
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-
-# TODO Ben does not know why Sajnin has so much code and not just a row count... consider later
 
 # Find all of the answers that include don't know in the tool answer sheet.
 kobo_dont_know_choices  <- choice_sheet %>% filter(name == "dont_know")
@@ -705,48 +767,54 @@ shelter_issues_reason_inconsistency <- hh_consent_daily %>% mutate(
   window = case_when((shelter_issues_reason.damage_windows==1 & (leaks_during_rain!="yes" & lack_of_insulation!= "yes"))~"yes", T~"no"),
   structure = case_when((shelter_issues_reason.structure_unstable==1 & collapse_living_there!= "yes")~"yes",T~ "no"),
   trap_heat = case_when((shelter_issues_reason.materials_trap_heat==1 & limited_ventilation != "yes")~"yes",T~ "no"),
-  lack_insulation = case_when((shelter_issues_reason.materials_dont_insulate==1 & lack_of_insulation!= "yes")~"yes",T~ "no")) %>% 
+  lack_insulation = case_when((shelter_issues_reason.materials_dont_insulate==1 & lack_of_insulation!= "yes")~"yes",T~ "no"))
+
+if(population == "refugee"){
   
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, shelter_issues_reason, leaks_during_rain, 
+  shelter_issues_reason_inconsistency$colapse = case_when(
+    (hh_consent_daily$collapse_living_there =="yes" | 
+       hh_consent_daily$collapse_with_other_hh =="yes" | 
+       hh_consent_daily$with_other_hh =="yes" | 
+       hh_consent_daily$collapse_in_open =="yes")~"yes",T~ "no")
+  
+  shelter_issues_reason_inconsistency = shelter_issues_reason_inconsistency %>% 
+    select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, shelter_issues_reason, leaks_during_rain, 
+         lack_of_insulation, collapse_living_there, roof, window, structure, trap_heat, lack_insulation, limited_ventilation, 
+         colapse, collapse_with_other_hh, with_other_hh, collapse_in_open)
+
+  } else{
+    
+    shelter_issues_reason_inconsistency = shelter_issues_reason_inconsistency %>% 
+    select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, shelter_issues_reason, leaks_during_rain, 
          lack_of_insulation, collapse_living_there, roof, window, structure, trap_heat, lack_insulation, limited_ventilation)
+}
+
+
+for(i in c("roof", "window", "structure", "trap_heat", "lack_insulation")){
+  # TODO - this isn't working for the output below:
+  x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency[,i]== "yes",] %>% 
+    select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, 
+           shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there, limited_ventilation)
+  
+  kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = i) %>%
+  kable_styling("striped") %>% 
+  htmltools::HTML() %>% 
+  print
+  cat("\n")
+  
+}
+
+if(population == "refugee"){
+  # Add the collapse indicators separately so that there is more space in the above tables, combine these if you have time.
+  x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency$colapse== "yes",] %>% 
+      select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, 
+             shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there, limited_ventilation,
+             colapse, collapse_with_other_hh, with_other_hh, collapse_in_open)
+  kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "Colapse"), "striped")
+}
+
   
 
-  # ---roof
-  x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency[,"roof"]== "yes",] %>% 
-    select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, 
-           shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there, limited_ventilation)
-  kable_styling(
-    kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "roof"),
-    position = "center")
-  # ---window
-    x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency[,"window"]== "yes",] %>% 
-    select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, 
-           shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there, limited_ventilation)
-  kable_styling(
-    kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "window"),
-    position = "center")
-  # ---structure
-    x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency[,"structure"]== "yes",] %>% 
-    select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, 
-           shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there, limited_ventilation)
-  kable_styling(
-    kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "structure"),
-    position = "center")
-  # ---trap_heat
-    x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency[,"trap_heat"]== "yes",] %>% 
-    select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, 
-           shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there, limited_ventilation)
-  kable_styling(
-    kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "trap_heat"),
-    position = "center")
-  # ---lack_insulation
-    x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency[,"lack_insulation"]== "yes",] %>% 
-    select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, 
-           shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there, limited_ventilation)
-  kable_styling(
-    kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_insulation"),
-    position = "center")
-  
 
 ```
 
@@ -763,7 +831,8 @@ shelter_issues_reason_inconsistency <- hh_consent_daily %>% mutate(
 
 ---
 
-#### Improvement_reason 1: flag if did_not_receive_any_shelter_support & sold_materials selected – add column showing selected options
+#### Improvement_reason 1:
+Flag if did_not_receive_any_shelter_support & sold_materials selected – add column showing selected options
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 improvement_reason_inconsistency <- hh_consent_daily %>% mutate(
@@ -779,7 +848,7 @@ kable_styling(kable(x = improvement_reason_inconsistency, longtable = T, booktab
 
 ---
 
-#### Improvement_reason
+#### Improvement_reason 2:
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # a
 # ----
@@ -850,15 +919,17 @@ kable_styling(kable(x = improvement_reason_inconsistency2b, longtable = T, bookt
 ---
 
 #### Group_nfi
+
 This shows instances where there are >8 answers not selected out of the following:
-"blankets", "mattresses_mats", "kitchen_sets", "torches_lights", "solar_lamps", "batteries",  "clothing", "winter_clothing", "shoes", "fans","mosquito_nets", "bedding_items" 
+"blankets", "mattresses_mats", "kitchen_sets", "torches_lights", "solar_lamps", "batteries",  "clothing", "winter_clothing", "shoes", "fans","mosquito_nets", "bedding_items".
+
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 nfi_cols <- c("blankets", "mattresses_mats", "kitchen_sets", "torches_lights", "solar_lamps", "batteries", 
               "clothing", "winter_clothing", "shoes", "fans","mosquito_nets", "bedding_items")
 
 group_nfi_inconsistency <- hh_consent_daily %>% mutate(
-  nfi_insufficient = case_when(rowSums(hh_consent_daily[nfi_cols]!= "yes", na.rm = T) >8~"yes")) %>%
+  nfi_insufficient = case_when(rowSums(hh_consent_daily[nfi_cols]!= "yes", na.rm = T) >10~"yes")) %>%
   filter(nfi_insufficient=="yes") %>% 
   select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, hh_size, nfi_cols)
 
@@ -1001,18 +1072,28 @@ if(population == "refugee"){
   young_girls = c("girl_3_count", "girl_4_5_count") ; older_girls = c("girl_15_18_count", "girl_19_24_count")
   young_boys = c("boy_3_count", "boy_4_5_count") ; older_boys = c("boy_15_18_count", "boy_19_24_count")
   
-  additional_girl_cols = c("distance_learning_girls_3", "distance_learning_girls_4_5", "distance_learning_girls_6_14",	
+  distance_girl_cols = c("distance_learning_girls_3", "distance_learning_girls_4_5", "distance_learning_girls_6_14",	
                            "distance_learning_girls_15_18", "distance_learning_girls_19_24")
-  additional_boy_cols = c("distance_learning_boys_3", "distance_learning_boys_4_5", "distance_learning_boys_6_14",
+  distance_boy_cols = c("distance_learning_boys_3", "distance_learning_boys_4_5", "distance_learning_boys_6_14",
                           "distance_learning_boys_15_18",  "distance_learning_boys_19_24")
+
+  send_back_girl_cols = c("send_back_girls_3", "send_back_girls_4_5", "send_back_girls_6_14",	
+                           "send_back_girls_15_18", "send_back_girls_19_24")
+  send_back_boy_cols = c("send_back_boys_3", "send_back_boys_4_5", "send_back_boys_6_14",
+                          "send_back_boys_15_18",  "send_back_boys_19_24")
+  
   age_range = c(3,24)
   
   } else {
+    
     young_girls = "girl_4_5_count" ; older_girls = "girl_15_18_count"
     young_boys = "boy_4_5_count" ; older_boys = "boy_15_18_count"
     
-    additional_girl_cols = c("distance_learning_girls_4_5", "distance_learning_girls_6_14", "distance_learning_girls_15_18")
-    additional_boy_cols = c("distance_learning_boys_4_5", "distance_learning_boys_6_14", "distance_learning_boys_15_18")
+    distance_girl_cols = c("distance_learning_girls_4_5", "distance_learning_girls_6_14", "distance_learning_girls_15_18")
+    distance_boy_cols = c("distance_learning_boys_4_5", "distance_learning_boys_6_14", "distance_learning_boys_15_18")
+    
+    send_back_girl_cols = c("send_back_girls_4_5", "send_back_girls_6_14", "send_back_girls_15_18")
+    send_back_boy_cols = c("send_back_boys_4_5", "send_back_boys_6_14", "send_back_boys_15_18")
     
     age_range = c(4,18)
   }
@@ -1042,7 +1123,7 @@ relevant_cols = list(
   "working_outside_home" = c("children_income"),
   "lack_content_older_children" = c("older_girl_count"),
   "lack_content_younger_children" = c("young_girl_count"),
-  "lack_light" = c("living_space_issues", "solar_lamps"),
+  "lack_light" = c("solar_lamps"),
   "marriage_pregnancy" = c("girls_married"))
 
 LI_dist_learning_barriers_girls <- hh_consent_daily %>% mutate(
@@ -1050,7 +1131,7 @@ LI_dist_learning_barriers_girls <- hh_consent_daily %>% mutate(
   children_income = child_income,
   older_girl_count = rowSums(hh_consent_daily[older_girls]),
   young_girl_count = rowSums(hh_consent_daily[young_girls]),
-  working_outside_home = case_when((distance_learning_barriers_girls.working_outside_home == 1 & child_income==0)~"yes", T~ "no"),
+  working_outside_home = case_when((distance_learning_barriers_girls.working_outside_home == 1 & children_income==0)~"yes", T~ "no"),
   lack_content_older_children = case_when((distance_learning_barriers_girls.lack_content_older_children==1 & older_girl_count==0)~"yes", T~ "no"),
   lack_content_younger_children = case_when((distance_learning_barriers_girls.lack_content_younger_children==1 & young_girl_count==0)~"yes", T~ "no"),
   lack_light = case_when((distance_learning_barriers_girls.lack_light==1 & (solar_lamps=="yes"))~"yes", T~ "no"),
@@ -1058,46 +1139,20 @@ LI_dist_learning_barriers_girls <- hh_consent_daily %>% mutate(
   
   select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, distance_learning_barriers_girls,
          working_outside_home, lack_content_older_children, lack_content_younger_children, lack_light, marriage_pregnancy, unique(unlist(relevant_cols)),
-         additional_girl_cols)
+         distance_girl_cols)
 
+for(i in names(relevant_cols)){
   
-
-# --working_outside_home
-kable_styling(
-  kable(x = LI_dist_learning_barriers_girls[LI_dist_learning_barriers_girls[,"working_outside_home"]=="yes",] %>% 
+  kable(x = LI_dist_learning_barriers_girls[LI_dist_learning_barriers_girls[,i]=="yes",] %>% 
           select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
-                 distance_learning_barriers_girls, relevant_cols[["working_outside_home"]], additional_girl_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "working_outside_home"), position = "center")
+                 distance_learning_barriers_girls, relevant_cols[[i]], distance_girl_cols),
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = i) %>%
+    kable_styling("striped") %>% 
+    htmltools::HTML() %>% 
+    print
   
-  # --lack_content_older_children
-kable_styling(
-  kable(x = LI_dist_learning_barriers_girls[LI_dist_learning_barriers_girls[,"lack_content_older_children"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
-                 distance_learning_barriers_girls, relevant_cols[["lack_content_older_children"]], additional_girl_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_content_older_children"), position = "center")
+}
 
-# --lack_content_younger_children
-kable_styling(
-  kable(x = LI_dist_learning_barriers_girls[LI_dist_learning_barriers_girls[,"lack_content_younger_children"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
-                 distance_learning_barriers_girls, relevant_cols[["lack_content_younger_children"]], additional_girl_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_content_younger_children"), position = "center")
-
-# --lack_light
-kable_styling(
-  kable(x = LI_dist_learning_barriers_girls[LI_dist_learning_barriers_girls[,"lack_light"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
-                 distance_learning_barriers_girls, relevant_cols[["lack_light"]], additional_girl_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_light"), position = "center")
-
-# --marriage_pregnancy
-kable_styling(
-  kable(x = LI_dist_learning_barriers_girls[LI_dist_learning_barriers_girls[,"marriage_pregnancy"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
-                 distance_learning_barriers_girls, relevant_cols[["marriage_pregnancy"]], additional_girl_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "marriage_pregnancy"), position = "center")
-  
-# }
 
 ```
 
@@ -1110,7 +1165,7 @@ relevant_cols = list(
   "working_outside_home" = c("children_income"),
   "lack_content_older_children" = c("older_boy_count"),
   "lack_content_younger_children" = c("young_boy_count"),
-  "lack_light" = c("living_space_issues","solar_lamps"),
+  "lack_light" = c("solar_lamps"),
   "marriage_pregnancy" = c("boys_married"))
 
 LI_dist_learning_barriers_boys <- hh_consent_daily %>% mutate(
@@ -1118,7 +1173,7 @@ LI_dist_learning_barriers_boys <- hh_consent_daily %>% mutate(
   children_income = child_income,
   older_boy_count = rowSums(hh_consent_daily[older_boys]),
   young_boy_count = rowSums(hh_consent_daily[young_boys]),
-  working_outside_home = case_when((distance_learning_barriers_boys.working_outside_home == 1 & child_income==0)~"yes", T~ "no"),
+  working_outside_home = case_when((distance_learning_barriers_boys.working_outside_home == 1 & children_income==0)~"yes", T~ "no"),
   lack_content_older_children = case_when((distance_learning_barriers_boys.lack_content_older_children==1 & older_boy_count==0)~"yes", T~ "no"),
   lack_content_younger_children = case_when((distance_learning_barriers_boys.lack_content_younger_children==1 & young_boy_count==0)~"yes", T~ "no"),
   lack_light = case_when((distance_learning_barriers_boys.lack_light==1 & (solar_lamps=="yes"))~"yes", T~ "no"),
@@ -1127,39 +1182,19 @@ LI_dist_learning_barriers_boys <- hh_consent_daily %>% mutate(
   
   select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, distance_learning_barriers_boys,
          working_outside_home, lack_content_older_children, lack_content_younger_children, lack_light, marriage_pregnancy, unique(unlist(relevant_cols)),
-         additional_boy_cols)
+         distance_boy_cols)
 
+for(i in names(relevant_cols)){
   
-# ---"working_outside_home"
-kable_styling(
-  kable(x = LI_dist_learning_barriers_boys[LI_dist_learning_barriers_boys[,"working_outside_home"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, distance_learning_barriers_boys, relevant_cols[["working_outside_home"]], additional_boy_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "working_outside_home"), position = "center")
+  kable(x = LI_dist_learning_barriers_boys[LI_dist_learning_barriers_boys[,i]=="yes",] %>% 
+          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, distance_learning_barriers_boys,
+                 relevant_cols[[i]], distance_boy_cols),
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = i) %>%
+    kable_styling("striped") %>% 
+    htmltools::HTML() %>% 
+    print
   
-# ---"lack_content_older_children"
-kable_styling(
-  kable(x = LI_dist_learning_barriers_boys[LI_dist_learning_barriers_boys[,"lack_content_older_children"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, distance_learning_barriers_boys, relevant_cols[["lack_content_older_children"]], additional_boy_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_content_older_children"), position = "center")
-
-# ---"lack_content_younger_children"
-kable_styling(
-  kable(x = LI_dist_learning_barriers_boys[LI_dist_learning_barriers_boys[,"lack_content_younger_children"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, distance_learning_barriers_boys, relevant_cols[["lack_content_younger_children"]], additional_boy_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_content_younger_children"), position = "center")
-
-# ---"lack_light"
-kable_styling(
-  kable(x = LI_dist_learning_barriers_boys[LI_dist_learning_barriers_boys[,"lack_light"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, distance_learning_barriers_boys, relevant_cols[["lack_light"]], additional_boy_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_light"), position = "center")
-
-# ---"marriage_pregnancy"
-kable_styling(
-  kable(x = LI_dist_learning_barriers_boys[LI_dist_learning_barriers_boys[,"marriage_pregnancy"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, distance_learning_barriers_boys, relevant_cols[["marriage_pregnancy"]], additional_boy_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "marriage_pregnancy"), position = "center")
-  
+}
 
 ```
 
@@ -1179,41 +1214,25 @@ send_back_barriers_girls <- hh_consent_daily %>% mutate(
   children_income = child_income,
   older_girl_count = rowSums(hh_consent_daily[older_girls]),
   young_girl_count = rowSums(hh_consent_daily[young_girls]),
-  working_outside_home =           case_when((send_back_barriers_girls.working_outside_home == 1 & child_income==0)~"yes", T~ "no"),
+  working_outside_home =           case_when((send_back_barriers_girls.working_outside_home == 1 & children_income==0)~"yes", T~ "no"),
   lack_content_older_children =    case_when((send_back_barriers_girls.lack_content_older_children==1 & older_girl_count==0)~"yes", T~ "no"),
   lack_content_younger_children =  case_when((send_back_barriers_girls.lack_content_younger_children==1 & young_girl_count==0)~"yes", T~ "no"),
   marriage_pregnancy =             case_when((send_back_barriers_girls.marriage_pregnancy==1 & girls_married== "yes")~"yes", T~ "no")) %>%
                                     
   select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_barriers_girls,
-         working_outside_home, lack_content_older_children, lack_content_younger_children, marriage_pregnancy, unique(unlist(relevant_cols)), additional_girl_cols)
+         working_outside_home, lack_content_older_children, lack_content_younger_children, marriage_pregnancy, unique(unlist(relevant_cols)), send_back_girl_cols)
 
-
-
-  kable_styling(
-    kable(x = send_back_barriers_girls[send_back_barriers_girls[,"working_outside_home"]=="yes",] %>% 
-            select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_barriers_girls, relevant_cols[["working_outside_home"]], additional_girl_cols), 
-          longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "working_outside_home"), position = "center")
-
+for(i in names(relevant_cols)){
   
- kable_styling(
-    kable(x = send_back_barriers_girls[send_back_barriers_girls[,"lack_content_older_children"]=="yes",] %>% 
-            select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_barriers_girls, relevant_cols[["lack_content_older_children"]], additional_girl_cols), 
-          longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_content_older_children"), position = "center")
+  kable(x = send_back_barriers_girls[send_back_barriers_girls[,i]=="yes",] %>% 
+            select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_barriers_girls,
+                   relevant_cols[[i]], send_back_girl_cols),
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = i) %>%
+    kable_styling("striped") %>% 
+    htmltools::HTML() %>% 
+    print
   
-
-kable_styling(
-    kable(x = send_back_barriers_girls[send_back_barriers_girls$lack[,"lack_content_younger_children"]=="yes",] %>% 
-            select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_barriers_girls, relevant_cols[["lack_content_younger_children"]], additional_girl_cols), 
-          longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_content_younger_children"), position = "center")
-  
-
- kable_styling(
-    kable(x = send_back_barriers_girls[send_back_barriers_girls[,"marriage_pregnancy"]=="yes",] %>% 
-            select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_barriers_girls, relevant_cols[["marriage_pregnancy"]], additional_girl_cols), 
-          longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "marriage_pregnancy"), position = "center")
-
-
-
+}
 
 ```
 
@@ -1233,44 +1252,25 @@ LI_send_back_barriers_boys <- hh_consent_daily %>% mutate(
   children_income = child_income,
   older_boy_count = rowSums(hh_consent_daily[older_boys]),
   young_boy_count = rowSums(hh_consent_daily[young_boys]),
-  working_outside_home = case_when((send_back_barriers_boys.working_outside_home == 1 & child_income==0)~"yes", T~ "no"),
+  working_outside_home = case_when((send_back_barriers_boys.working_outside_home == 1 & children_income==0)~"yes", T~ "no"),
   lack_content_older_children = case_when((send_back_barriers_boys.lack_content_older_children==1 & older_boy_count==0)~"yes", T~ "no"),
   lack_content_younger_children = case_when((send_back_barriers_boys.lack_content_younger_children==1 & young_boy_count==0)~"yes", T~ "no"),
   marriage_pregnancy = case_when((send_back_barriers_boys.marriage_pregnancy==1 & boys_married== "yes")~"yes", T~ "no")) %>%
   
   select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_barriers_boys,
-         working_outside_home, lack_content_older_children, lack_content_younger_children, marriage_pregnancy, unique(unlist(relevant_cols)), additional_boy_cols)
+         working_outside_home, lack_content_older_children, lack_content_younger_children, marriage_pregnancy, unique(unlist(relevant_cols)), send_back_boy_cols)
 
-
-# --- "working_outside_home"
-kable_styling(
-  kable(x = LI_send_back_barriers_boys[LI_send_back_barriers_boys[,"working_outside_home"]=="yes",] %>% 
+for(i in names(relevant_cols)){
+  
+  kable(x = LI_send_back_barriers_boys[LI_send_back_barriers_boys[,i]=="yes",] %>% 
           select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_barriers_boys, 
-                 relevant_cols[["working_outside_home"]], additional_boy_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "working_outside_home"), position = "center")
-
-
-# --- "lack_content_older_children"
-kable_styling(
-  kable(x = LI_send_back_barriers_boys[LI_send_back_barriers_boys[,"lack_content_older_children"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_barriers_boys, 
-                 relevant_cols[["lack_content_older_children"]], additional_boy_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_content_older_children"), position = "center")
-
-# --- "lack_content_younger_children"
-kable_styling(
-  kable(x = LI_send_back_barriers_boys[LI_send_back_barriers_boys[,"lack_content_younger_children"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_barriers_boys, 
-                 relevant_cols[["lack_content_younger_children"]], additional_boy_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_content_younger_children"), position = "center")
-
-# --- "marriage_pregnancy"
-kable_styling(
-  kable(x = LI_send_back_barriers_boys[LI_send_back_barriers_boys[,"marriage_pregnancy"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_barriers_boys, 
-                 relevant_cols[["marriage_pregnancy"]], additional_boy_cols),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "marriage_pregnancy"), position = "center")
-
+                 relevant_cols[[i]], send_back_boy_cols),
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = i) %>%
+    kable_styling("striped") %>% 
+    htmltools::HTML() %>% 
+    print
+  
+}
 
 ```
 
@@ -1290,42 +1290,25 @@ send_back_challenges_girls <- hh_consent_daily %>% mutate(
   children_income = child_income,
   older_girl_count = rowSums(hh_consent_daily[older_girls]),
   young_girl_count = rowSums(hh_consent_daily[young_girls]),
-  working_outside_home  = case_when((send_back_challenges_girls.working_outside_home == 1 & child_income==0)~"yes", T~ "no"),
+  working_outside_home  = case_when((send_back_challenges_girls.working_outside_home == 1 & children_income==0)~"yes", T~ "no"),
   lack_content_older_children  = case_when((send_back_challenges_girls.lack_content_older_children==1 & older_girl_count==0)~"yes", T~ "no"),
   lack_content_younger_children = case_when((send_back_challenges_girls.lack_content_younger_children==1 & young_girl_count==0)~"yes", T~ "no"),
   marriage_pregnancy = case_when((send_back_challenges_girls.marriage_pregnancy==1 & girls_married== "yes")~"yes", T~ "no")) %>%
   
   select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_challenges_girls,
-         working_outside_home, lack_content_older_children, lack_content_younger_children, marriage_pregnancy, unique(unlist(relevant_cols)), additional_girl_cols)
+         working_outside_home, lack_content_older_children, lack_content_younger_children, marriage_pregnancy, unique(unlist(relevant_cols)), send_back_girl_cols)
 
-
-# --- "working_outside_home"
-kable_styling(
-  kable(x = send_back_challenges_girls[send_back_challenges_girls[,"working_outside_home"]=="yes",] %>% 
+for(i in names(relevant_cols)){
+  
+  kable(x = send_back_challenges_girls[send_back_challenges_girls[,i]=="yes",] %>% 
             select(reported_date, X_uuid, enumerator_id, enumerator_name, team, instance_name, respondent_id, send_back_challenges_girls, 
-                   relevant_cols[["working_outside_home"]], additional_girl_cols), 
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "working_outside_home"), position = "center")
-
-# --- "lack_content_older_children"
-kable_styling(
-  kable(x = send_back_challenges_girls[send_back_challenges_girls[,"lack_content_older_children"]=="yes",] %>% 
-            select(reported_date, X_uuid, enumerator_id, enumerator_name, team, instance_name, respondent_id, send_back_challenges_girls, 
-                   relevant_cols[["lack_content_older_children"]], additional_girl_cols), 
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_content_older_children"), position = "center")
-
-# --- "lack_content_younger_children"
-kable_styling(
-  kable(x = send_back_challenges_girls[send_back_challenges_girls[,"lack_content_younger_children"]=="yes",] %>% 
-            select(reported_date, X_uuid, enumerator_id, enumerator_name, team, instance_name, respondent_id, send_back_challenges_girls, 
-                   relevant_cols[["lack_content_younger_children"]], additional_girl_cols), 
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_content_younger_children"), position = "center")
-
-# --- "marriage_pregnancy"
-kable_styling(
-  kable(x = send_back_challenges_girls[send_back_challenges_girls[,"marriage_pregnancy"]=="yes",] %>% 
-            select(reported_date, X_uuid, enumerator_id, enumerator_name, team, instance_name, respondent_id, send_back_challenges_girls, 
-                   relevant_cols[["marriage_pregnancy"]], additional_girl_cols), 
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "marriage_pregnancy"), position = "center")
+                   relevant_cols[[i]], send_back_girl_cols),
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = i) %>%
+    kable_styling("striped") %>% 
+    htmltools::HTML() %>% 
+    print
+  
+}
 
 ```
 
@@ -1345,47 +1328,82 @@ send_back_challenges_boys <- hh_consent_daily %>% mutate(
   children_income = child_income,
   older_boy_count = rowSums(hh_consent_daily[older_boys]),
   young_boy_count = rowSums(hh_consent_daily[young_boys]),
-  working_outside_home = case_when((send_back_challenges_boys.working_outside_home == 1 & child_income==0)~"yes", T~ "no"),
+  working_outside_home = case_when((send_back_challenges_boys.working_outside_home == 1 & children_income==0)~"yes", T~ "no"),
   lack_content_older_children = case_when((send_back_challenges_boys.lack_content_older_children==1 & older_boy_count==0)~"yes", T~ "no"),
   lack_content_younger_children = case_when((send_back_challenges_boys.lack_content_younger_children==1 & young_boy_count==0)~"yes", T~ "no"),
   marriage_pregnancy = case_when((send_back_challenges_boys.marriage_pregnancy==1 & boys_married== "yes")~"yes", T~ "no")) %>%
   
   select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_challenges_boys,
-         working_outside_home, lack_content_older_children, lack_content_younger_children, marriage_pregnancy, unique(unlist(relevant_cols)), additional_boy_cols)
+         working_outside_home, lack_content_older_children, lack_content_younger_children, marriage_pregnancy, unique(unlist(relevant_cols)), send_back_boy_cols)
 
 
-
-# --- "working_outside_home"
-kable_styling(
-  kable(x = send_back_challenges_boys[send_back_challenges_boys[,"working_outside_home"]=="yes",] %>% 
+for(i in names(relevant_cols)){
+  
+  kable(x = send_back_challenges_boys[send_back_challenges_boys[,i]=="yes",] %>% 
           select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_challenges_boys, 
-                 relevant_cols[["working_outside_home"]], additional_boy_cols), 
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "working_outside_home"), position = "center")
-
-# ---"lack_content_older_children"
-kable_styling(
-  kable(x = send_back_challenges_boys[send_back_challenges_boys[,"lack_content_older_children"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_challenges_boys, 
-                 relevant_cols[["lack_content_older_children"]], additional_boy_cols), 
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_content_older_children"), position = "center")
-
-# --- "lack_content_younger_children"
-kable_styling(
-  kable(x = send_back_challenges_boys[send_back_challenges_boys[,"lack_content_younger_children"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_challenges_boys, 
-                 relevant_cols[["lack_content_younger_children"]], additional_boy_cols), 
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "lack_content_younger_children"), position = "center")
-
-# --- "marriage_pregnancy"
-kable_styling(
-  kable(x = send_back_challenges_boys[send_back_challenges_boys[,"marriage_pregnancy"]=="yes",] %>% 
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, send_back_challenges_boys, 
-                 relevant_cols[["marriage_pregnancy"]], additional_boy_cols), 
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "marriage_pregnancy"), position = "center")
+                 relevant_cols[[i]], send_back_boy_cols),
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = i) %>%
+    kable_styling("striped") %>% 
+    htmltools::HTML() %>% 
+    print
+  
+}
 
 ```
 
 ---
+
+
+#### never_enrolled when all children are enrolled
+
+This has a lot of columns so that it is clear what is going on. We can reduce once confirmed it is as desired.
+
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
+gender = c("boy", "girl")
+
+for(i in gender){
+
+  # 1. Find which households selected never enrolled for distance and sent back barriers:
+  not_enroled_cols = c(paste0("distance_learning_barriers_", i, "s.never_enrolled"), 
+                       paste0("send_back_barriers_", i, "s.never_enrolled"))
+  not_enroled = rowSums(hh_consent_daily[not_enroled_cols], na.rm = TRUE) >0
+  
+  # 2. Count the number of boys in the household:
+  child_count_col = colnames(hh_consent_daily)[grep(paste0("^", i, "_.*count$"), colnames(hh_consent_daily))] # "^boy_.*_count$" # ^=start, . = something, .*=something several times
+  child_count = rowSums(x = hh_consent_daily[child_count_col], na.rm = TRUE)
+  
+  # 3. Count the number of boys enrolled in distance learning or who have been sent back:
+  child_enrolled_col = colnames(hh_consent_daily)[grep(paste0("enrolment_", i, "s"), colnames(hh_consent_daily))]
+  child_enrolled_col = child_enrolled_col[-grep("_dk", child_enrolled_col)]
+  child_enrolled = rowSums(x = hh_consent_daily[child_enrolled_col], na.rm = TRUE)
+    # Remove instances where children do not exist...
+    child_enrolled[child_count==0]=NA
+    
+  # 4. Flag instances where 1.==TRUE & 2.==3. :
+  flags = not_enroled & (child_enrolled==child_count)==TRUE
+  
+  # 5. Print a table 
+  if(length(which(flags==TRUE))>0){
+    
+    flag_data = hh_consent_daily[, c("reported_date", "X_uuid", "enumerator_id", "enumerator_name","team", "respondent_id", "instance_name", 
+                                              not_enroled_cols, child_count_col, child_enrolled_col)]
+    flag_data = cbind(flag_data, child_count, child_enrolled)
+  
+    kable(x = flag_data[flags,],
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
+        caption = paste0(i, "s never_enrolled == TRUE & all ",  i, "s enrolled.")) %>%
+    kable_styling("striped") %>%
+    htmltools::HTML() %>%
+    print
+    
+  } else {print(paste0("No flags for ", i, "s."))}
+
+}
+
+```
+
+\---
 
 #### nutrition_barriers_not_accessed
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
@@ -1402,7 +1420,7 @@ nutrition_barriers_not_accessed_inconsistency <- hh_consent_daily %>% mutate(
   
   select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
          child_not_taken_after_referral_HH_count,child_taken_no_support_HH_count,
-         child_taken_no_support, child_not_taken_after_referral, nutrition_barriers_not_accessed)
+         child_taken_no_support, child_not_taken_after_referral, nutrition_barriers_not_accessed, nutrition_barriers_not_accessed_cols)
 
 
 kable_styling(kable(x = nutrition_barriers_not_accessed_inconsistency %>% 
@@ -1410,7 +1428,7 @@ kable_styling(kable(x = nutrition_barriers_not_accessed_inconsistency %>%
                       select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
                              # child_taken_no_support, child_not_taken_after_referral,
                              # nutrition_barriers_not_accessed_cols, nutrition_barriers_not_accessed.already_referred,
-                             nutrition_barriers_not_accessed, child_taken_no_support_HH_count),
+                             child_taken_no_support_HH_count, child_not_taken_after_referral_HH_count, nutrition_barriers_not_accessed),
                     longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
                     caption = "nutrition_barriers_not_accessed_inconsistency: child_taken_no_support. child_taken_no_support_HH_count>0 & != (not_admitted OR waiting_times OR language_barriers)"),
               position = "center")
@@ -1420,7 +1438,7 @@ kable_styling(kable(x = nutrition_barriers_not_accessed_inconsistency %>%
                       select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
                              # child_taken_no_support, child_not_taken_after_referral,
                              # nutrition_barriers_not_accessed_cols, nutrition_barriers_not_accessed.already_referred,
-                             nutrition_barriers_not_accessed, child_not_taken_after_referral_HH_count),
+                             child_taken_no_support_HH_count, child_not_taken_after_referral_HH_count, nutrition_barriers_not_accessed),
                     longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
                     caption = "nutrition_barriers_not_accessed_inconsistency: child_not_taken_after_referral. child_not_taken_after_referral_HH_count>0 & != not already_referred"),
               position = "center")
@@ -1465,7 +1483,7 @@ if(population=="refugee"){
 
 ---
 
-#### Food Barriers - not checked yet
+#### Food Barriers [Camps only]
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 if(population=="refugee"){
   
@@ -1478,7 +1496,7 @@ if(population=="refugee"){
                                     feedback.did_but_it_was_not_responded != 1 & 
                                     feedback.did_but_the_response_was_not_satisfactory != 1))~"yes", T~NA_character_)) %>%
       filter(food_barriers=="yes") %>% 
-      select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, Flag, feedback)
+      select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, food_barriers, feedback, food_barriers.no_assistance)
   
 kable_styling(kable(x = food_barriers, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
                     caption = "food_barriers"),
@@ -1523,7 +1541,7 @@ adult_income = adult * indv_with_income ; adult_income = rowSums(adult_income, n
 
 relevant_cols = list(
   "selling_food_rations" = c("main_income_source.sale_assistance", "selling_food_rations", "selling_nfis"), 
-  "child_working_long_hours" = c("child_working_long_hours", "child_income"), 
+  "child_working_long_hours" = c("child_working_long_hours", "children_income"), 
   "child_marriage" = c("child_marriage", "girls_married", "boys_married", "children_not_staying_with_hh", "reason_not_with_hh", "girls_age10_count", "boys_age10_count"), 
   "risk_jobs" = c("risk_jobs", "indv_with_income"), 
   "adults_working_long_hours" = c("adults_working_long_hours", "adult_income")
@@ -1532,9 +1550,9 @@ relevant_cols = list(
 # Do the checks:
 group_livelihood_coping_inconsistency <- hh_consent_daily %>% mutate(
   
-  indv_with_income = indv_with_income, child_income = child_income, adult_income = adult_income,
+  indv_with_income = indv_with_income, children_income = child_income, adult_income = adult_income,
   selling_food_rations = case_when(((selling_food_rations == "yes" | selling_nfis == "yes") & main_income_source.sale_assistance != 1)~"yes", TRUE~"no"),
-  child_working_long_hours = case_when((child_working_long_hours == "yes" & child_income ==0)~"yes", TRUE~"no"),
+  child_working_long_hours = case_when((child_working_long_hours == "yes" & children_income ==0)~"yes", TRUE~"no"),
   child_marriage = case_when((child_marriage == "yes" & 
                                 (girls_married == 0 | girls_age10_count == 0) & 
                                 (boys_married == 0 | boys_age10_count == 0) &
@@ -1546,69 +1564,52 @@ group_livelihood_coping_inconsistency <- hh_consent_daily %>% mutate(
   select(c(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
            main_income_source, unique(unlist(relevant_cols))))
 
+for(i in names(relevant_cols)){
 
-# --- "selling_food_rations"
-kable_styling(
-  kable(x = group_livelihood_coping_inconsistency[group_livelihood_coping_inconsistency[,"selling_food_rations"]=="yes",] %>%
+  kable(x = group_livelihood_coping_inconsistency[group_livelihood_coping_inconsistency[,i]=="yes",] %>%
           select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
-                 relevant_cols[["selling_food_rations"]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "selling_food_rations"), position = "center")
+                 relevant_cols[[i]]),
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = i) %>%
+    kable_styling("striped") %>%
+    htmltools::HTML() %>%
+    print
 
-# --- "child_working_long_hours"
-kable_styling(
-  kable(x = group_livelihood_coping_inconsistency[group_livelihood_coping_inconsistency[,"child_working_long_hours"]=="yes",] %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
-                 relevant_cols[["child_working_long_hours"]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "child_working_long_hours"), position = "center")
-
-# --- "child_marriage"
-kable_styling(
-  kable(x = group_livelihood_coping_inconsistency[group_livelihood_coping_inconsistency[,"child_marriage"]=="yes",] %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
-                 relevant_cols[["child_marriage"]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "child_marriage"), position = "center")
-
-# --- "risk_jobs"
-kable_styling(
-  kable(x = group_livelihood_coping_inconsistency[group_livelihood_coping_inconsistency[,"risk_jobs"]=="yes",] %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
-                 relevant_cols[["risk_jobs"]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "risk_jobs"), position = "center")
-
-# --- "adults_working_long_hours"
-kable_styling(
-  kable(x = group_livelihood_coping_inconsistency[group_livelihood_coping_inconsistency[,"adults_working_long_hours"]=="yes",] %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
-                 relevant_cols[["adults_working_long_hours"]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "adults_working_long_hours"), position = "center")
-
+}
 
 ```
 
 ---
 
+#### group_livelihood_coping2
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# group_livelihood_coping2
 
-# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
-#                     caption = "..."),
-#               position = "center")
+# •	begging == “exhausted” | “not_available”
+kable_styling(kable(x = hh_consent_daily[c(hh_consent_daily$begging=="exhaused" | hh_consent_daily$begging=="not_available"), 
+                     c("reported_date", "X_uuid", "enumerator_id", "enumerator_name", "team", "respondent_id", "instance_name", "begging")],
+    longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
+    caption = "Flag if begging == “exhausted” | “not_available”"),
+    "striped")
+
+
+# •	selling_labor, child_working_long_hours, adults_working_long_hours, risk_jobs, hh_migration == “exhausted” 
+kable_styling(kable(x = hh_consent_daily[
+  c(hh_consent_daily$selling_labor=="exhaused" |
+      hh_consent_daily$child_working_long_hours=="exhaused" |
+      hh_consent_daily$adults_working_long_hours=="exhaused" |
+      hh_consent_daily$risk_jobs=="exhaused" |
+      hh_consent_daily$hh_migration=="exhaused"),
+  c("reported_date", "X_uuid", "enumerator_id", "enumerator_name", "team", "respondent_id", "instance_name",
+    "selling_labor", "child_working_long_hours", "adults_working_long_hours", "risk_jobs", "hh_migration")],
+  longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
+  caption = "Flag if selling_labor, child_working_long_hours, adults_working_long_hours, risk_jobs, hh_migration == “exhausted” "),
+  "striped")
+
+
 ```
 
 ---
 
-```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
-# coping_reason
-
-# kable_styling(kable(x = ..., longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
-#                     caption = "..."),
-#               position = "center")
-
-```
-
----
-
-coping_reason 2
+#### coping_reason
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # TODO - reduce the number of outputs columns
 
@@ -1631,21 +1632,21 @@ if(population=="host"){cooking_fuel_cols = c(
 }
 
 coping_reason_inconsistency_2 <- hh_consent_daily %>% mutate(
-  dist_leaning_count = rowSums(hh_consent_daily[dist_learning_cols]==0, na.rm = T),
+  dist_leaning_count = rowSums(hh_consent_daily[dist_learning_cols]>0, na.rm = T),
   
   food = case_when((coping_reason.food == 1 & food_expenditure==0)~"yes", TRUE~ "no"),
   healthcare = case_when((coping_reason.healthcare == 1 & (paid_healthcare !="yes"| health_expenditure==0))~"yes", TRUE~ "no"),
   edu = case_when((coping_reason.education ==1 & dist_leaning_count==0)~"yes", TRUE~ "no"),
   edu2 = case_when((coping_reason.education ==1 & education_expenditure==0)~"yes", TRUE~ "no"),
-  clothes = case_when(((coping_reason.clothing ==1 |coping_reason.hh_items==1) & freq_nfi_expenditure==0)~"yes", TRUE~ "no"),
+  clothes = case_when(((coping_reason.clothing ==1 |coping_reason.hh_items==1) & infreq_nfi_expenditure==0)~"yes", TRUE~ "no"),
   # rent - added below in if statement
   shelter = case_when((coping_reason.shelter ==1 & (improvement.no_improvement == 1 | improvement.dont_know == 1 | 
                                                       improvement.other == 1 | shelter_expenditure == 0))~"yes", TRUE~ "no"),
   cookingfuel1 = case_when((coping_reason.cooking_fuel ==1 & hh_consent_daily[cooking_fuel_cols[1]] !=1 & hh_consent_daily[cooking_fuel_cols[2]] != 1)~"yes", TRUE~ "no"),
   cookingfuel2 = case_when((coping_reason.cooking_fuel ==1 & fuel_expenditure == 0)~"yes", TRUE~ "no"),
-  hygiene  = case_when((coping_reason.hygiene_items ==1 & freq_nfi_expenditure == 0)~"yes", TRUE~ "no"),
+  hygiene  = case_when((coping_reason.hygiene_items ==1 & freq_nfi_expenditure == 0)~"yes", TRUE~ "no"))
   # water added below in if statement...
-  water2  = case_when((coping_reason.water ==1 & water_expenditure == 0)~"yes", TRUE~ "no"))
+  # water2  = case_when((coping_reason.water ==1 & water_expenditure == 0)~"yes", TRUE~ "no"))
 
 # Add in the bits needed for if it refugee community:
 if(population=="refugee"){
@@ -1680,34 +1681,33 @@ if(population=="refugee"){
 #          "rent_expenditure", "shelter_expenditure", "improvement", "fuel_expenditure",
 #          "freq_nfi_expenditure", "water_coping", "water_expenditure", dist_learning_cols, cooking_fuel_cols)
          
-conflict_cols = c("food", "healthcare", "edu", "edu2", "clothes", "shelter", "cookingfuel1", "cookingfuel2", "hygiene", "water1", "water2")
+conflict_cols = c("food", "healthcare", "edu", "edu2", "clothes", "shelter", "cookingfuel1", "cookingfuel2", "hygiene", "water1") #, "water2"
 
-caps = c("== “food” & food_expenditure == 0",
-         "== “healthcare” & (paid_healthcare != “yes” | health_expenditure == 0)",
-         "== “education” & no children in distance learning  (or returned, if relevant)",
-         "== “education” & education_expenditure == 0",
-         "== (“clothing” | “hh_items”) & infreq_nfi_expenditure == 0",
-         "== “shelter” & (improvement == “no_improvement” | improvement == “dont_know” | improvement == “other” | shelter_expenditure == 0)",
-         "== “cooking_fuel” & fuel != “buying_lpg_refills” & fuel != “firewood_purchased” ",
-         "== “cooking_fuel” & fuel_expenditure == 0",
-         "== “hygiene_items” & freq_nfi_expenditure == 0",
-         "== “water” & (water_coping != “spend_money” & water_coping != “buy_water”)",
-         "== “water” & water_expenditure == 0")
+caps = list(
+  "food" = "== “food” & food_expenditure == 0",
+  "healthcare" = "== “healthcare” & (paid_healthcare != “yes” | health_expenditure == 0)",
+  "edu" = "== “education” & no children in distance learning  (or returned, if relevant)",
+  "edu2" = "== “education” & education_expenditure == 0",
+  "clothes" = "== (“clothing” | “hh_items”) & infreq_nfi_expenditure == 0",
+  "shelter" = "== “shelter” & (improvement == “no_improvement” | improvement == “dont_know” | improvement == “other” | shelter_expenditure == 0)",
+  "cookingfuel1" = "== “cooking_fuel” & fuel != “buying_lpg_refills” & fuel != “firewood_purchased” ",
+  "cookingfuel2" = "== “cooking_fuel” & fuel_expenditure == 0",
+  "hygiene" = "== “hygiene_items” & freq_nfi_expenditure == 0",
+  "water1" = "== “water” & (water_coping != “spend_money” & water_coping != “buy_water”)") #, "water2" = "== “water” & water_expenditure == 0")
 
 
 relevant_columns = list(
   "food" = c("food_expenditure"),
   "healthcare" = c("paid_healthcare", "health_expenditure"), 
-  "edu" = c(dist_learning_cols), 
+  "edu" = c("dist_leaning_count", dist_learning_cols), 
   "edu2" = c("education_expenditure"), 
-  "clothes" = c("coping_reason.hh_items", "freq_nfi_expenditure"), 
+  "clothes" = c("coping_reason.clothing", "coping_reason.hh_items", "infreq_nfi_expenditure"), 
   # rent added below
   "shelter" = c("improvement.dont_know", "improvement.no_improvement", "improvement.other", "shelter_expenditure"), 
   "cookingfuel1" = c(cooking_fuel_cols), 
   "cookingfuel2" = c("fuel_expenditure"), 
   "hygiene" = c("freq_nfi_expenditure"), 
-  "water1" = c("water_coping.spend_money"),
-  "water2" = c("water_expenditure")
+  "water1" = c("water_coping.spend_money")# , "water2" = c("water_expenditure")
 ) 
   
 if(population=="refugee"){
@@ -1715,7 +1715,7 @@ if(population=="refugee"){
   relevant_columns$water1 = c(relevant_columns$water1, "water_coping.buy_water")
   relevant_columns$rent_issue = c("shelter_paid", "rent_expenditure")
   conflict_cols = c(conflict_cols, "rent_issue")
-  caps = c(caps, "== “rent” & (shelter_paid == “no_need” | shelter_paid == “dont_know” | shelter_paid == ”other” | rent_expenditure == 0)")
+  caps[["rent_issue"]] = "== “rent” & (shelter_paid == “no_need” | shelter_paid == “dont_know” | shelter_paid == ”other” | rent_expenditure == 0)"
 }
 
 # coping_reason_inconsistency_2 = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2=="yes") %>% select(cols)
@@ -1725,83 +1725,17 @@ if(population=="refugee"){
 
 # Create the table print out:
 
-# ---"food"
-concol = conflict_cols[1]
-kable_styling(
-  kable(x = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2[concol] == "yes") %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, coping_reason, relevant_columns[[concol]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = caps[1]), position = "center")
+for(i in names(relevant_columns)){
+  
+  # concol = conflict_cols[i]
+  kable(x = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2[i] == "yes") %>%
+          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, coping_reason, relevant_columns[[i]]),
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = paste(i, caps[[i]], sep = ": ")) %>%
+    kable_styling("striped") %>%
+    htmltools::HTML() %>%
+    print
 
-# ---
-concol = conflict_cols[2]
-kable_styling(
-  kable(x = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2[concol] == "yes") %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, coping_reason, relevant_columns[[concol]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = caps[2]), position = "center")
-
-# ---
-concol = conflict_cols[3]
-kable_styling(
-  kable(x = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2[concol] == "yes") %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, coping_reason, relevant_columns[[concol]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = caps[3]), position = "center")
-
-# ---
-concol = conflict_cols[4]
-kable_styling(
-  kable(x = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2[concol] == "yes") %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, coping_reason, relevant_columns[[concol]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = caps[4]), position = "center")
-
-# ---
-concol = conflict_cols[5]
-kable_styling(
-  kable(x = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2[concol] == "yes") %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, coping_reason, relevant_columns[[concol]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = caps[5]), position = "center")
-
-# ---
-concol = conflict_cols[6]
-kable_styling(
-  kable(x = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2[concol] == "yes") %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, coping_reason, relevant_columns[[concol]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = caps[6]), position = "center")
-
-# ---
-concol = conflict_cols[7]
-kable_styling(
-  kable(x = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2[concol] == "yes") %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, coping_reason, relevant_columns[[concol]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = caps[7]), position = "center")
-
-# ---
-concol = conflict_cols[8]
-kable_styling(
-  kable(x = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2[concol] == "yes") %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, coping_reason, relevant_columns[[concol]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = caps[8]), position = "center")
-
-# ---
-concol = conflict_cols[9]
-kable_styling(
-  kable(x = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2[concol] == "yes") %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, coping_reason, relevant_columns[[concol]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = caps[9]), position = "center")
-
-# ---
-concol = conflict_cols[10]
-kable_styling(
-  kable(x = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2[concol] == "yes") %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, coping_reason, relevant_columns[[concol]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = caps[10]), position = "center")
-
-# ---
-concol = conflict_cols[11]
-kable_styling(
-  kable(x = coping_reason_inconsistency_2 %>% filter(coping_reason_inconsistency_2[concol] == "yes") %>%
-          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, coping_reason, relevant_columns[[concol]]),
-        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = caps[11]), position = "center")
-
+}
 
 ```
 
@@ -1817,7 +1751,7 @@ kable_styling(
 
 ---
 
-Amount Outliers
+#### Amount Outliers
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 amounts = c("assistance_amount", "salaried_work_amount", "casual_labor_amount", "business_amount",
@@ -1846,6 +1780,11 @@ for(e in colnames(amounts)){
   amounts[4,e] = amounts[1,e] + 2*amounts[2,e]
 } # The above makes NaN and NA values, though I do not think that will affect anything.
 
+# Round the values to 0 decimal places:
+amounts = round(amounts,0)
+# Print the stats table:
+kable_styling(kable(x = amounts, longtable = T, booktabs = T, linesep = "", align = "c", row.names = TRUE, 
+                    caption = "Amount statistics."), "striped") 
 
 # Calculate the daily amount totals:
 hh_consent_daily$total_amount <- rowSums(hh_consent_daily[, colnames(amounts)[1:(ncol(amounts)-1)]], na.rm = TRUE)
@@ -1902,115 +1841,47 @@ if(population=="host"){
 amounts_data_day = amounts_data_day %>% select(c("reported_date", "X_uuid", "enumerator_id", "enumerator_name", "team", respondent_id, "instance_name", 
            colnames(amounts), gsub(pattern = "_amount", replacement = "", x = colnames(amounts))))
 
+
+# Print the tables:
+for(i in 1:ncol(amounts)){
   
-# --- 
-concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[1]
-x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[1], concol)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
-                                           ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))),  position = "center")
+  concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[i]
 
-# --- 
-concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[2]
-x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[2], concol)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
-                                           ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))),  position = "center")
+  kable(x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
+          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[i], concol),
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = 
+          paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
+                 ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))) %>%
+    kable_styling("striped") %>%
+    htmltools::HTML() %>%
+    print
 
-# --- 
-concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[3]
-x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[3], concol)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
-                                           ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[4]
-x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[4], concol)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
-                                           ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[5]
-x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[5], concol)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
-                                           ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[6]
-x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[6], concol)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
-                                           ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[7]
-x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[7], concol)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
-                                           ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[8]
-x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[8], concol)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
-                                           ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[9]
-x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[9], concol)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
-                                           ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[10]
-x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[10], concol)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
-                                           ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[11]
-x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[11], concol)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
-                                           ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))),  position = "center")
-
-# --- 
-if(population=="host"){
-concol = gsub(pattern = "_amount", replacement = "", x = colnames(amounts))[12]
-x = amounts_data_day %>% filter(amounts_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts)[12], concol)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, "   |  Lower limit is ", round(amounts[3,paste0(concol, "_amount")], 0),
-                                           ". Upper limit is ", round(amounts[4,paste0(concol, "_amount")], 0))),  position = "center")
 }
-
-
 
 ```
 
 ---
 
-Checks of the following PER CAPITA: food_expenditure, rent_expenditure , water_expenditure, freq_nfi_expenditure, fuel_expenditure, transportation_expenditure
+#### main_income_source.humanitarian_assistance == 0
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+if(population=="refugee"){
+kable_styling(kable(x = hh_consent_daily[hh_consent_daily$main_income_source.humanitarian_assistance==0,
+                                           c("reported_date", "X_uuid", "enumerator_id", "enumerator_name", "team", "respondent_id",
+                                             "instance_name","main_income_source.humanitarian_assistance")],
+      longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
+      caption = "main_income_source.humanitarian_assistance == 0"),
+      "striped")
+}
+```
+
+---
+
+#### Checks of the following PER CAPITA: 
+
+food_expenditure, rent_expenditure , water_expenditure, freq_nfi_expenditure, fuel_expenditure, transportation_expenditure.
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
-amounts2 = c("food_expenditure", "rent_expenditure" , "water_expenditure", "freq_nfi_expenditure", "fuel_expenditure", "transportation_expenditure")
+amounts2 = c("food_expenditure", "rent_expenditure" , "freq_nfi_expenditure", "fuel_expenditure", "transportation_expenditure")# "water_expenditure", 
 
 # TODO - not working
   # rent_expenditure_inconsistency <- hh_consent_daily %>% mutate(
@@ -2037,13 +1908,17 @@ for(e in colnames(amounts2)){
 } # The above makes NaN and NA values, though I do not think that will affect anything.
 
 # Calculate the daily amount totals:
-hh_consent_daily$total_expenditure <- rowSums(hh_consent_daily[, colnames(amounts)[1:(ncol(amounts)-1)]], na.rm = TRUE)
+hh_consent_daily$total_expenditure <- rowSums(hh_consent_daily[, colnames(amounts2)[1:(ncol(amounts2)-1)]], na.rm = TRUE)
 
 # Create a subset of the data to use for calculations
 amounts2_data_day <- hh_consent_daily[, colnames(amounts2)]
 
+# Store the origional data:
+amounts2_data_day_origional = amounts2_data_day[colnames(amounts2)]
+colnames(amounts2_data_day_origional) = paste0("ORIGIONAL_", colnames(amounts2_data_day_origional))
+                                       
 # Convert to per Capita:
-amounts2_data_day = amounts2_data_day[colnames(amounts2)] / hh_consent_daily$hh_size
+amounts2_data_day = round(amounts2_data_day[colnames(amounts2)] / hh_consent_daily$hh_size, 0)
 
 # c("food_expenditure", "rent_expenditure" , "water_expenditure", "freq_nfi_expenditure", "fuel_expenditure", "transportation_expenditure")
 # Find instances in the daily data where values are outliers:
@@ -2055,8 +1930,8 @@ amounts2_data_day <- amounts2_data_day %>% mutate(
   rent = case_when((rent_expenditure < amounts2[3, "rent_expenditure"] | 
                       rent_expenditure > amounts2[4, "rent_expenditure"])~"yes", TRUE~"no"),
   
-  water = case_when((water_expenditure < amounts2[3, "water_expenditure"] | 
-                       water_expenditure > amounts2[4, "water_expenditure"])~"yes", TRUE~"no"),
+  # water = case_when((water_expenditure < amounts2[3, "water_expenditure"] | 
+  #                      water_expenditure > amounts2[4, "water_expenditure"])~"yes", TRUE~"no"),
   
   freq_nfi = case_when(((freq_nfi_expenditure < amounts2[3, "freq_nfi_expenditure"] | 
                            freq_nfi_expenditure > amounts2[4, "freq_nfi_expenditure"]))~"yes", TRUE~"no"),
@@ -2077,76 +1952,156 @@ amounts2_data_day = amounts2_data_day %>%
   select(c("reported_date", "X_uuid", "enumerator_id", "enumerator_name", "team", "respondent_id", "instance_name", 
            colnames(amounts2), gsub(pattern = "_expenditure", replacement = "", x = colnames(amounts2))))
 
-# for(i in 1:ncol(amounts2)){
-# --- 
-concol = gsub(pattern = "_expenditure", replacement = "", x = colnames(amounts2))[1]
-x = amounts2_data_day[amounts2_data_day[concol] == "yes",] %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts2)[1], concol)
-
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                    caption = paste0(concol, "   |  Lower limit is ", round(amounts2[3,paste0(concol, "_expenditure")], 0),
-                                     ". Upper limit is ", round(amounts2[4,paste0(concol, "_expenditure")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_expenditure", replacement = "", x = colnames(amounts2))[2]
-x = amounts2_data_day[amounts2_data_day[concol] == "yes",] %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts2)[2], concol)
-
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                    caption = paste0(concol, "   |  Lower limit is ", round(amounts2[3,paste0(concol, "_expenditure")], 0),
-                                     ". Upper limit is ", round(amounts2[4,paste0(concol, "_expenditure")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_expenditure", replacement = "", x = colnames(amounts2))[3]
-x = amounts2_data_day[amounts2_data_day[concol] == "yes",] %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts2)[3], concol)
-
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                    caption = paste0(concol, "   |  Lower limit is ", round(amounts2[3,paste0(concol, "_expenditure")], 0),
-                                     ". Upper limit is ", round(amounts2[4,paste0(concol, "_expenditure")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_expenditure", replacement = "", x = colnames(amounts2))[4]
-x = amounts2_data_day[amounts2_data_day[concol] == "yes",] %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts2)[4], concol)
-
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                    caption = paste0(concol, "   |  Lower limit is ", round(amounts2[3,paste0(concol, "_expenditure")], 0),
-                                     ". Upper limit is ", round(amounts2[4,paste0(concol, "_expenditure")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_expenditure", replacement = "", x = colnames(amounts2))[5]
-x = amounts2_data_day[amounts2_data_day[concol] == "yes",] %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts2)[5], concol)
-
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                    caption = paste0(concol, "   |  Lower limit is ", round(amounts2[3,paste0(concol, "_expenditure")], 0),
-                                     ". Upper limit is ", round(amounts2[4,paste0(concol, "_expenditure")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_expenditure", replacement = "", x = colnames(amounts2))[6]
-x = amounts2_data_day[amounts2_data_day[concol] == "yes",] %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts2)[6], concol)
-
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                    caption = paste0(concol, "   |  Lower limit is ", round(amounts2[3,paste0(concol, "_expenditure")], 0),
-                                     ". Upper limit is ", round(amounts2[4,paste0(concol, "_expenditure")], 0))),  position = "center")
-
-# --- 
-concol = gsub(pattern = "_expenditure", replacement = "", x = colnames(amounts2))[7]
-x = amounts2_data_day[amounts2_data_day[concol] == "yes",] %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts2)[7], concol)
-
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                    caption = paste0(concol, "   |  Lower limit is ", round(amounts2[3,paste0(concol, "_expenditure")], 0),
-                                     ". Upper limit is ", round(amounts2[4,paste0(concol, "_expenditure")], 0))),  position = "center")
 
 
+# Print the tables:
+for(i in 1:ncol(amounts2)){
+  
+  concol = gsub(pattern = "_expenditure", replacement = "", x = colnames(amounts2))[i]
+  
+  # Select per Capita data:
+  x = amounts2_data_day %>%
+          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts2)[i], concol)
+  
+  # Add on the origional data:
+  c = paste0("ORIGIONAL_",concol, "_expenditure")
+  x[c] = amounts2_data_day_origional[,c]
+  
+  # Filter this to the rows of interest:
+  x = x[x[concol] == "yes",] 
+    
+  kable(x,
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = 
+          paste0(concol, "   |  Lower limit is ", round(amounts2[3,paste0(concol, "_expenditure")], 0),
+                 ". Upper limit is ", round(amounts2[4,paste0(concol, "_expenditure")], 0))) %>%
+    kable_styling("striped") %>%
+    htmltools::HTML() %>%
+    print
+
+}
 ```
 
 ---
 
-rent_expenditure
+food_assistance_value, freq_nfi_assistance_value, fuel_assistance_value, transportation_assistance_value
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
+amounts3 = c("food_assistance_value", "freq_nfi_assistance_value" , "fuel_assistance_value", "transportation_assistance_value")
+
+# Sum the amounts:
+hh_consent_full$total_value = rowSums(x = hh_consent_full[,amounts3], na.rm = TRUE) 
+
+# Set up a matrix to hold the stats:
+amounts3 = matrix(ncol = length(amounts3)+1,
+                 nrow = 4, data = NA, 
+                 dimnames = list(c("mean", "SD", "mean-2SD", "mean+2SD"), 
+                                 c(amounts3, "total_value")))
+
+# Extract all of the expenditure data PER CAPITA (per person): 
+amounts3_data <- hh_consent_full[,colnames(amounts3)] / hh_consent_full$hh_size
+
+# Compute the stats:
+for(e in colnames(amounts3)){
+  amounts3[1,e] = mean(amounts3_data[,e], na.rm = TRUE)
+  amounts3[2,e] = sd(x = amounts3_data[,e], na.rm = TRUE)
+  amounts3[3,e] = amounts3[1,e] - 2*amounts3[2,e]
+  amounts3[4,e] = amounts3[1,e] + 2*amounts3[2,e]
+} # The above makes NaN and NA values, though I do not think that will affect anything.
+
+# Calculate the daily amount totals:
+hh_consent_daily$total_value <- rowSums(hh_consent_daily[, colnames(amounts3)[1:(ncol(amounts3)-1)]], na.rm = TRUE)
+
+# Create a subset of the data to use for calculations
+amounts3_data_day <- hh_consent_daily[, colnames(amounts3)]
+
+# Store the origional data:
+amounts3_data_day_origional = amounts3_data_day[colnames(amounts3)]
+colnames(amounts3_data_day_origional) = paste0("Origional_", colnames(amounts3_data_day_origional))
+                                       
+# Convert to per Capita:
+amounts3_data_day = round(amounts3_data_day[colnames(amounts3)] / hh_consent_daily$hh_size, 0)
+
+# Find instances in the daily data where values are outliers:
+amounts3_data_day <- amounts3_data_day %>% mutate(
+  
+  food_assistance = case_when((food_assistance_value < amounts3[3, "food_assistance_value"] | 
+                                       food_assistance_value > amounts3[4, "food_assistance_value"])~"yes", TRUE~"no"),
+  
+  freq_nfi_assistance = case_when((freq_nfi_assistance_value < amounts3[3, "freq_nfi_assistance_value"] | 
+                                     freq_nfi_assistance_value > amounts3[4, "freq_nfi_assistance_value"])~"yes", TRUE~"no"),
+  
+  fuel_assistance = case_when(((fuel_assistance_value < amounts3[3, "fuel_assistance_value"] | 
+                                      fuel_assistance_value > amounts3[4, "fuel_assistance_value"]))~"yes", TRUE~"no"),
+  
+  transportation_assistance = case_when(((transportation_assistance_value < amounts3[3, "transportation_assistance_value"] |
+                                            transportation_assistance_value > amounts3[4, "transportation_assistance_value"]))~"yes", TRUE~"no"),
+  
+  total = case_when((total_value < amounts3[3, "total_value"] |
+                       total_value > amounts3[4, "total_value"])~"yes", TRUE~"no")) 
+
+
+# Add on the identifier data:
+amounts3_data_day = cbind(hh_consent_daily[, c("reported_date", "X_uuid", "enumerator_id","enumerator_name", "team", "respondent_id", "instance_name")],
+                          amounts3_data_day)
+
+amounts3_data_day = amounts3_data_day %>%
+  select(c("reported_date", "X_uuid", "enumerator_id", "enumerator_name", "team", "respondent_id", "instance_name", 
+           colnames(amounts3), gsub(pattern = "_value", replacement = "", x = colnames(amounts3))))
+
+
+
+# Print the tables:
+
+for(i in 1:ncol(amounts3)){
+  
+  concol = gsub(pattern = "_value", replacement = "", x = colnames(amounts3))[i]
+  
+  # Select per Capita data:
+  x = amounts3_data_day %>%
+          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, colnames(amounts3)[i], concol)
+  
+  # Add on the origional data:
+  c = paste0("Origional_",concol, "_value")
+  x[c] = amounts3_data_day_origional[,c]
+  
+  # Filter this to the rows of interest:
+  x = x[x[concol] == "yes",] 
+    
+  kable(x,
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = 
+          paste0(concol, "   |  Lower limit is ", round(amounts3[3,paste0(concol, "_value")], 0),
+                 ". Upper limit is ", round(amounts3[4,paste0(concol, "_value")], 0))) %>%
+    kable_styling("striped") %>%
+    htmltools::HTML() %>%
+    print
+
+}
+```
+
+---
+
+#### food_expenditure and food_assistance_value
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+
+# sum food_expenditure & food_assistance_value
+food_value = hh_consent_daily[c("food_expenditure", "food_assistance_value")]
+food_value$sum = rowSums(food_value, na.rm = TRUE)
+
+# Flag if these == 0 or (for camps) if food_assistance_value == 0:
+if(population=="host"){food_value$flag = food_value$sum==0}
+if(population=="refugee"){food_value$flag = (food_value$sum==0 | food_value$food_assistance_value==0)}
+
+# print the table
+food_value = cbind(hh_consent_daily[c("reported_date", "X_uuid", "enumerator_id", "enumerator_name", "team", "respondent_id", "instance_name")], food_value)
+kable_styling(kable(x = food_value[which(food_value$flag==TRUE),],
+      longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
+      caption = "Flag if sum of food_expenditure & food_assistance_value == 0, and for camps also if food_assistance_value == 0 "),
+      "striped")
+```
+
+---
+
+#### rent_expenditure
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 if(population=="refugee"){
@@ -2166,7 +2121,7 @@ if(population=="refugee"){
 
 ---
 
-fuel_expenditure
+#### fuel_expenditure
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 # This uses cooking cols from an earlier chunk, which depend of HC/RC.
 
@@ -2177,9 +2132,6 @@ fuel_expenditure_inconsistency <- hh_consent_daily %>% mutate(
   filter(fuel_expend_inconsistency=="yes") %>% 
   select(reported_date, X_uuid, enumerator_id, enumerator_name, team, instance_name, respondent_id, fuel_expenditure, cooking_fuel_cols, fuel_expend_inconsistency)
 
-# colnames(fuel_expenditure_inconsistency) = gsub(pattern = "_", replacement = " ", x = colnames(fuel_expenditure_inconsistency))
-# colnames(fuel_expenditure_inconsistency) = gsub(pattern = ".", replacement = ": ", x = colnames(fuel_expenditure_inconsistency), fixed = T)
-
 kable_styling(kable(x = fuel_expenditure_inconsistency, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
                     caption = "fuel_expenditure_inconsistency"),
               position = "center")
@@ -2187,22 +2139,25 @@ kable_styling(kable(x = fuel_expenditure_inconsistency, longtable = T, booktabs 
 
 ---
 
-Expenditure: Should flag unusually high/low values for each and the sum. [PER CAPITA]
+#### Expenditure:
+
+Should flag unusually high/low values for each and the sum. [Per capita]
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 expenditures = c("shelter_expenditure", "infreq_nfi_expenditure", "health_expenditure", "education_expenditure", "debt_expenditure")
 
 # Sum the expenditures per capita:
-hh_consent_full$expenditure_total = rowSums(hh_consent_full[,expenditures], na.rm = TRUE) 
+hh_consent_full$total_expenditure = rowSums(hh_consent_full[,expenditures], na.rm = TRUE) 
 
 # Set up a matrix to hold the stats:
 expenditures = matrix(ncol = 6, nrow = 4, data = NA, 
                       dimnames = list(c("mean", "SD", "mean-2SD", "mean+2SD"), 
-                                      c(expenditures, "expenditure_total")))
+                                      c(expenditures, "total_expenditure")))
 
 
 # Extract all of the expenditure data per Capita: 
 expenditures_data <- hh_consent_full[,colnames(expenditures)] / hh_consent_full$hh_size
+
 
 # Compute the stats:
 for(e in colnames(expenditures)){
@@ -2214,18 +2169,27 @@ for(e in colnames(expenditures)){
 
 
 # Run through the daily dataset and find instances where this values are outliers:
-hh_consent_daily$expenditure_total <- rowSums(hh_consent_daily[, colnames(expenditures)[1:5]], na.rm = TRUE)
+hh_consent_daily$total_expenditure <- rowSums(hh_consent_daily[, colnames(expenditures)[1:5]], na.rm = TRUE)
 
 expenditures_data_day <- hh_consent_daily[, c("reported_date", "X_uuid", "enumerator_id", "enumerator_name", "team", "respondent_id", "instance_name",  colnames(expenditures))]
+
+# Store the origional data:
+expenditures_data_day_origional = expenditures_data_day
+colnames(expenditures_data_day_origional) = paste0("ORIGIONAL_", colnames(expenditures_data_day_origional))
 
 # Make sure that this is per capita:
 expenditures_data_day[colnames(expenditures)] = expenditures_data_day[colnames(expenditures)] / hh_consent_daily$hh_size
 
+# Round the data to 0 Decimal places:
+expenditures_data_day[grep(pattern = "expenditure", x = colnames(expenditures_data_day))] = 
+  round(expenditures_data_day[grep(pattern = "expenditure", x = colnames(expenditures_data_day))], 0)
+
 expenditures_data_day <- expenditures_data_day %>% mutate(
+  
   shelter_exp = case_when((shelter_expenditure < expenditures[3, "shelter_expenditure"] | 
                              shelter_expenditure > expenditures[4, "shelter_expenditure"])~"yes", TRUE~"no"),
  
-   infreq_nfi_exp = case_when((infreq_nfi_expenditure < expenditures[3, "infreq_nfi_expenditure"] |
+  infreq_nfi_exp = case_when((infreq_nfi_expenditure < expenditures[3, "infreq_nfi_expenditure"] |
                                 infreq_nfi_expenditure > expenditures[4, "infreq_nfi_expenditure"])~"yes", TRUE~"no"),
   
   health_exp = case_when((health_expenditure < expenditures[3, "health_expenditure"] |
@@ -2237,15 +2201,15 @@ expenditures_data_day <- expenditures_data_day %>% mutate(
   debt_exp = case_when((debt_expenditure < expenditures[3, "debt_expenditure"] | 
                           debt_expenditure > expenditures[4, "debt_expenditure"])~"yes", TRUE~"no"),
   
-  exp_total  = case_when((expenditure_total < expenditures[3, "expenditure_total"] | 
-                            expenditure_total > expenditures[4, "expenditure_total"])~"yes", TRUE~"no"))
+  total_exp  = case_when((total_expenditure < expenditures[3, "total_expenditure"] | 
+                            total_expenditure > expenditures[4, "total_expenditure"])~"yes", TRUE~"no"))
 
 # expenditures_data_day = expenditures_data_day[expenditures_data_day$outlier=="yes",]
 # expenditures_data_day$outlier <- NULL
 
 # colnames(expenditures_data_day) = gsub(x = colnames(expenditures_data_day), pattern = "_", replacement = " ")
 
-kable_styling(kable(x = round(expenditures,0), longtable = T, booktabs = T, linesep = "", align = "c", row.names = TRUE,
+kable_styling(kable(x = round(expenditures, 0), longtable = T, booktabs = T, linesep = "", align = "c", row.names = TRUE,
                     caption = "Expenditure statistics"),
               position = "center")
 
@@ -2253,61 +2217,31 @@ cols = colnames(expenditures_data_day)
 relevant_cols = cols[grep(pattern = "expenditure", x = cols)]
 cols = cols[grep(pattern = "exp", x = cols)]; cols = unique(gsub(pattern = "expenditure", replacement = "exp", x = cols))
 
-# for(i in 1:length(cols)){
-# ---
-concol = cols[1]
-x = expenditures_data_day %>% filter(expenditures_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, relevant_cols[1])
-  
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, ":  Upper limit is ", round(expenditures[4,relevant_cols[1]], 0))), 
-                    position = "center")
 
-# ---
-concol = cols[2]
-x = expenditures_data_day %>% filter(expenditures_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, relevant_cols[2])
-  
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, ":  Upper limit is ", round(expenditures[4,relevant_cols[2]], 0))), 
-                    position = "center")
 
-# ---
-concol = cols[3]
-x = expenditures_data_day %>% filter(expenditures_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, relevant_cols[3])
+for(i in 1:length(cols)){
   
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, ":  Upper limit is ", round(expenditures[4,relevant_cols[3]], 0))), 
-                    position = "center")
-
-# ---
-concol = cols[4]
-x = expenditures_data_day %>% filter(expenditures_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, relevant_cols[4])
+  concol = cols[i]
   
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, ":  Upper limit is ", round(expenditures[4,relevant_cols[4]], 0))), 
-                    position = "center")
+  # Select per Capita data:
+  x = expenditures_data_day %>% # %>% filter(expenditures_data_day[concol] == "yes") 
+          select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, relevant_cols[i], concol)
 
-# ---
-concol = cols[5]
-x = expenditures_data_day %>% filter(expenditures_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, relevant_cols[5])
+  # Add on the origional data:
+  c = paste0("ORIGIONAL_", substr(x = concol, start = 1, stop = nchar(concol)-4), "_expenditure")
+  x[c] = expenditures_data_day_origional[,c]
+
+  # Filter this to the rows of interest:
+  x = x[x[concol] == "yes",]
   
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, ":  Upper limit is ", round(expenditures[4,relevant_cols[5]], 0))), 
-                    position = "center")
+  kable(x = x,
+        longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
+        caption = paste0(concol, ":  Upper limit is ", round(expenditures[4,relevant_cols[i]], 0))) %>%
+    kable_styling("striped") %>%
+    htmltools::HTML() %>%
+    print
 
-# ---
-concol = cols[6]
-x = expenditures_data_day %>% filter(expenditures_data_day[concol] == "yes") %>%
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, relevant_cols[6])
-  
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                          caption = paste0(concol, ":  Upper limit is ", round(expenditures[4,relevant_cols[6]], 0))), 
-                    position = "center")
-
+}
 
 
 
@@ -2315,7 +2249,9 @@ kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c
 
 ---
 
-health_expenditure
+#### health_expenditure
+
+health_expenditure > 0 & paid_healthcare == “no” OR health_expenditure == 0 & paid_healthcare == “yes”.
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 health_expenditure_inconsistency<- hh_consent_daily %>% mutate(
@@ -2332,7 +2268,9 @@ kable_styling(kable(x = health_expenditure_inconsistency, longtable = T, booktab
 
 ---
 
-shelter_expenditure
+#### shelter_expenditure
+
+shelter expenditure > 0 & shelter_materials_source != “purchased” OR shelter_expenditure == 0 & shelter_materials_source == “purchased”.
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 shelter_expenditure_inconsistency <- hh_consent_daily %>% mutate(
@@ -2370,21 +2308,30 @@ kable_styling(kable(x = shelter_expenditure_inconsistency, longtable = T, bookta
 
 ---
 
-group_water_quantity.
+#### group_water_quantity.
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 group_water_quantity = hh_consent_daily %>% mutate(
-  group_water_quantity = case_when((enough_water_bathing_facility == "not_applicable" & enough_water_bathing_shelter == "not_applicable")~"yes",
-                                   T~ NA_character_)) %>%
-  filter(group_water_quantity=="yes") %>% 
-  select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, sanitation_coping, enough_water_bathing_facility, enough_water_bathing_shelter)
+  bathing = case_when((enough_water_bathing_facility == "not_applicable" & enough_water_bathing_shelter == "not_applicable")~"yes",
+                                   T~ NA_character_),
+  Not_applicables = case_when((enough_water_drinking == "not_applicable" | enough_water_cooking == "not_applicable" | enough_water_other == "not_applicable")~"yes",
+                                   T~ NA_character_)) 
 
-# colnames(group_water_quantity) <- c("reported date", "X uuid", "enumerator id", "sanitation coping",
-#                                     "enough water bathing facility",  "enough water bathing shelter") 
-
-kable_styling(kable(x = group_water_quantity, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
+kable_styling(kable(x = group_water_quantity %>% filter(bathing=="yes") %>%
+                      select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
+                             sanitation_coping, enough_water_bathing_facility, enough_water_bathing_shelter),
+                    longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
                     caption = "Flag if 'enough_water_bathing_facility' AND 'enough_water_bathing_shelter' are 'not_applicable'."),
               position = "center")
+
+kable_styling(kable(x = group_water_quantity %>% filter(Not_applicables=="yes") %>%
+                      select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
+                             sanitation_coping, enough_water_drinking, enough_water_cooking, enough_water_other),
+                    longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
+                    caption = "Flag if drinking water, cooking water, or water for other domestic purposes are not applicable"),
+              position = "center")
+
+
 ```
 
 ---
@@ -2397,9 +2344,9 @@ kable_styling(kable(x = group_water_quantity, longtable = T, booktabs = T, lines
 #               position = "center")
 ```
 
-### Outliers check
 
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+### Outliers check
 # TODO
 # Cara wants the mean and SD at several points. This function will do this automatically.
 # There is more code on this in the daily monitoring script in the rATA script.
@@ -2420,7 +2367,14 @@ kable_styling(kable(x = group_water_quantity, longtable = T, booktabs = T, lines
 
 # Find the columns of interest for HH data:
 hh_other_cols <- hh_consent_daily %>% select(c(starts_with("other_"), ends_with("_other"))) %>% names()
-hh_other_cols = hh_other_cols[!hh_other_cols %in% c("water_coping.less_preferred_other", "water_coping.less_use_other", "enough_water_other")]
+
+# Exclude the following columns
+hh_other_cols = hh_other_cols[!hh_other_cols %in% c("other_amount", "other_amount_dk", "other_distribution", 
+                                                    "other_distribution.not_enough", "other_distribution.less_preferred", "other_distribution.quality",
+                                                    "water_coping.less_preferred_other", "water_coping.less_use_other", "enough_water_other")]
+
+# Include the following additional columns:
+hh_other_cols = c(hh_other_cols, "unsafe_areas_male_shelter", "unsafe_areas_female_shelter")
 
 # Subset the data to just the columns with other data:
 hh_other <- hh_consent_daily %>%
@@ -2438,7 +2392,7 @@ if(nrow(hh_other)>0){
   # Find which columns have "other" answers: 
   include = colSums(!is.na(hh_other[, hh_other_cols]))
   # Remove all rows without "other" answers:
-  hh_other[,hh_other_cols[include==0]] = NULL
+  hh_other[, hh_other_cols[include==0]] = NULL
   
   # Convert to long table:
   hh_other[] <- lapply(hh_other, as.character)
@@ -2453,7 +2407,12 @@ if(nrow(hh_other)>0){
   kable_styling(kable(x = hh_other_pi_long, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
                       caption = "Household 'Other' answers"), position = "center")
   
-} else {print("No 'other' responses in household data.")}
+  # Write the table to a csv:
+  write.csv(x = hh_other_pi_long, file = paste0("05_outputs/01_daily_monitoring/", population, "/Reports/Daily Monitoring Report - Other HH Responses - ",
+                                                population,  " - ", gsub("-","_", day_to_run), ".csv"))
+
+  } else {print("No 'other' responses in household data.")}
+
 
 # ----
 # Repeat for individual tab:
@@ -2483,7 +2442,8 @@ if(nrow(ind_other)>0){
 
 ---
 
-3.f.	Number of issues flagged by enumerator: [needs an update]
+#### 3.f.	Number of issues flagged by enumerator:
+[needs an update once all checks are added and confirmed working]
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
 enumerator_list = c(
@@ -2536,13 +2496,42 @@ kable_styling(kable(x = count, longtable = T, booktabs = T, linesep = "", align 
 ```
 
 
+#### Enumerator dont_know
+```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
+# Create a subset of the dataset:
+dont_knows = colnames(hh_consent_daily)[grep(pattern = "_dk", x = colnames(hh_consent_daily))]
+dont_knows = hh_consent_daily[c("reported_date","X_uuid","enumerator_id", "enumerator_name", "respondent_id", "team", "instance_name", dont_knows)]
+
+# Find which rows have dont_knows:
+dont_knows$flag = apply(dont_knows, 1, function(x) length(which(x=="dont_know")))
+
+# Find which columns have dont_knows:
+c = apply(dont_knows, 2, function(x) length(which(x=="dont_know")))
+c = names(which(c>0))
+
+# Print out the remaining dataset:
+dont_knows = dont_knows[dont_knows$flag>0, c("reported_date","X_uuid","enumerator_id", "enumerator_name", "respondent_id", "team", "instance_name",c)]
+
+kable_styling(kable(x = dont_knows, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
+                    caption= "Answers to '_dk' questions"), position = "center")
+
+if(nrow(dont_knows)>0){
+kable_styling(kable(x = table(dont_knows$enumerator_id), longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
+                    col.names = c("Enumerator ID", "dont_know count"), caption= "Answers to '_dk' questions"), position = "center")
+}
+
+
+```
+
+---
+
 ```{r eval=FALSE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE, include= FALSE}
 ## cleaning log
-# cleaning log will be provided in separate excel file. This is currently not being written as deemed unneccesary for now.
+# cleaning log will be provided in separate excel file. This is currently not being written as deemed unnecessary for now.
 all_cleaning_log$duration_cl$old_value <- all_cleaning_log$duration_cl$old_value %>% as.character()
-final_cleaning_log <- do.call("bind_rows",all_cleaning_log)
+final_cleaning_log <- do.call("bind_rows", all_cleaning_log)
 
-final_cleaning_log <- final_cleaning_log %>% mutate(new_value =NULL,change_type=NULL) %>%
+final_cleaning_log <- final_cleaning_log %>% mutate(new_value =NULL, change_type=NULL) %>%
   select(reported_date, X_uuid, enumerator_id, enumerator_name, team, instance_name, survey_loop, questions, old_value, everything())
 
 final_cleaning_log <- final_cleaning_log %>% rename("issues"="ref_col")

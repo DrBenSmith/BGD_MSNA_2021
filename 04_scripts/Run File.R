@@ -14,27 +14,28 @@
 
 # CHECK the following:
 #   > data_path
-#   >audit_zip_dir
+#   > audit_zip_dir
 
 # ERRORS in this script are probably due to incorrect paths below! Check these, as they are sneaky.
 
 
 # Data Paths (CHANGE) -----------------------------------------------------
 
-population      <- c("host","refugee")[2]
-data_file_name  <- "Camp_JMSNA_2021_-_all_versions_-_False_-_2021-07-12-12-57-45.xlsx"
-audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_12_13_00_34"
-# data_file_name  <- "Host_JMSNA_2021_-_all_versions_-_False_-_2021-07-12-12-46-22.xlsx"
-# audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_12_12_47_37"
+population      <- c("host","refugee")[1]
+data_file_name  <- "Host_JMSNA_2021_-_latest_version_-_False_-_2021-07-15-13-04-42.xlsx"
+audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_15_13_05_28"
+# data_file_name  <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-15-12-31-51.xlsx"
+# audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_15_12_33_07"
 
-data_path     <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day1/")
-audit_zip_dir <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day1/")
+data_path <- audit_zip_dir <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day4/")
+# audit_zip_dir <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day3/")
 
 
 # Setup -------------------------------------------------------------------
 
 # rm(list = ls())
 library(rmarkdown)
+library(knitr)
 day_to_run <- Sys.Date()
 write_csv_output <-c("yes","no")[1]
 
