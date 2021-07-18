@@ -15,7 +15,7 @@ code_folding: hide
 
 # Data Paths (CHANGE) -----------------------------------------------------
 
-population      <- c("host","refugee")[1]
+population      <- c("host","refugee")[2]
 
 data_path     <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day4/")
 audit_zip_dir <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day4/")
@@ -33,12 +33,12 @@ audit_zip_dir <- paste0("../02 Data Collection and Planning/Quant/4_Data_collect
 # audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_12_12_47_37"
 
 # CAMP Wednesday
-# data_file_name  <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-15-12-31-51.xlsx"
-# audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_15_12_33_07"
+data_file_name  <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-15-12-31-51.xlsx"
+audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_15_12_33_07"
 
 # HOST Wednesday
-data_file_name  <- "Host_JMSNA_2021_-_latest_version_-_False_-_2021-07-15-13-04-42.xlsx"
-audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_15_13_05_28"
+# data_file_name  <- "Host_JMSNA_2021_-_latest_version_-_False_-_2021-07-15-13-04-42.xlsx"
+# audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_15_13_05_28"
 
 
 
@@ -104,6 +104,7 @@ library(plotly)
 
 source("04_scripts/functions/Load_Audit.R")
 source("04_scripts/functions/utils.R")
+ID_cols = c("reported_date", "X_uuid", "enumerator_id", "enumerator_name", "team", "respondent_id", "instance_name")
 
 ```
 
@@ -767,15 +768,11 @@ shelter_issues_reason_inconsistency <- hh_consent_daily %>% mutate(
   window = case_when((shelter_issues_reason.damage_windows==1 & (leaks_during_rain!="yes" & lack_of_insulation!= "yes"))~"yes", T~"no"),
   structure = case_when((shelter_issues_reason.structure_unstable==1 & collapse_living_there!= "yes")~"yes",T~ "no"),
   trap_heat = case_when((shelter_issues_reason.materials_trap_heat==1 & limited_ventilation != "yes")~"yes",T~ "no"),
-  lack_insulation = case_when((shelter_issues_reason.materials_dont_insulate==1 & lack_of_insulation!= "yes")~"yes",T~ "no"))
+  lack_insulation = case_when((shelter_issues_reason.materials_dont_insulate==1 & lack_of_insulation!= "yes")~"yes",T~ "no"),
+  colapse = case_when((hh_consent_daily$collapse_living_there =="yes" | hh_consent_daily$collapse_with_other_hh =="yes" | 
+                         hh_consent_daily$with_other_hh =="yes" | hh_consent_daily$collapse_in_open =="yes")~"yes",T~ "no"))
 
 if(population == "refugee"){
-  
-  shelter_issues_reason_inconsistency$colapse = case_when(
-    (hh_consent_daily$collapse_living_there =="yes" | 
-       hh_consent_daily$collapse_with_other_hh =="yes" | 
-       hh_consent_daily$with_other_hh =="yes" | 
-       hh_consent_daily$collapse_in_open =="yes")~"yes",T~ "no")
   
   shelter_issues_reason_inconsistency = shelter_issues_reason_inconsistency %>% 
     select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, shelter_issues_reason, leaks_during_rain, 
@@ -791,8 +788,8 @@ if(population == "refugee"){
 
 
 for(i in c("roof", "window", "structure", "trap_heat", "lack_insulation")){
-  # TODO - this isn't working for the output below:
-  x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency[,i]== "yes",] %>% 
+  
+  x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency[, i]== "yes",] %>% 
     select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, 
            shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there, limited_ventilation)
   
@@ -804,14 +801,14 @@ for(i in c("roof", "window", "structure", "trap_heat", "lack_insulation")){
   
 }
 
-if(population == "refugee"){
-  # Add the collapse indicators separately so that there is more space in the above tables, combine these if you have time.
-  x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency$colapse== "yes",] %>% 
-      select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, 
-             shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there, limited_ventilation,
-             colapse, collapse_with_other_hh, with_other_hh, collapse_in_open)
-  kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "Colapse"), "striped")
-}
+# if(population == "refugee"){
+# Add the collapse indicators separately so that there is more space in the above tables, combine these if you have time.
+x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency$colapse== "yes",] %>% 
+    select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, 
+           shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there, limited_ventilation,
+           colapse, collapse_with_other_hh, with_other_hh, collapse_in_open)
+kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "Colapse"), "striped")
+# }
 
   
 
@@ -1408,9 +1405,11 @@ for(i in gender){
 #### nutrition_barriers_not_accessed
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
+# Set columns of interest:
 nutrition_barriers_not_accessed_cols <- c("nutrition_barriers_not_accessed.not_admitted", "nutrition_barriers_not_accessed.waiting_times",
                                           "nutrition_barriers_not_accessed.language_barriers")
 
+# Select the instances where flags are triggered:
 nutrition_barriers_not_accessed_inconsistency <- hh_consent_daily %>% mutate(
   
   child_taken_no_support = case_when(child_taken_no_support_HH_count>0 &
@@ -1423,9 +1422,52 @@ nutrition_barriers_not_accessed_inconsistency <- hh_consent_daily %>% mutate(
          child_taken_no_support, child_not_taken_after_referral, nutrition_barriers_not_accessed, nutrition_barriers_not_accessed_cols)
 
 
+# --- Add repeat_instance names to nutrition_barriers_not_accessed_inconsistency, as the HH data is calculated from the individual loop:
+
+# Add a column to receive the repeat instance IDs: 
+nutrition_barriers_not_accessed_inconsistency$repeat_instance_no_support = rep(NA, nrow(nutrition_barriers_not_accessed_inconsistency))
+nutrition_barriers_not_accessed_inconsistency$repeat_instance_not_taken = rep(NA, nrow(nutrition_barriers_not_accessed_inconsistency))
+
+# Find the UUIDs
+uuIDs_of_interest = list(
+  no_support_uuids = nutrition_barriers_not_accessed_inconsistency$X_uuid[which(nutrition_barriers_not_accessed_inconsistency$child_taken_no_support =="yes")],
+  not_taken_uuids  = nutrition_barriers_not_accessed_inconsistency$X_uuid[which(nutrition_barriers_not_accessed_inconsistency$child_not_taken_after_referral =="yes")]
+)
+
+# For each of the two columns:
+for(i in 1:length(uuIDs_of_interest)){
+  
+  # Check 
+  if(i==1){child_col = "child_taken_no_support"} else{child_col = "child_not_taken_after_referral"}
+  if(i==1){repeat_col = "repeat_instance_no_support"} else{repeat_col = "repeat_instance_not_taken"}
+  
+  Uuid_list = uuIDs_of_interest[[i]]
+  
+  # If there are uuid's to check:
+  if(length(Uuid_list)>0){
+    
+    # Run through the UUIDs:
+    for(j in Uuid_list){
+    
+    # find which individual responses match the UUID:
+    temp = indv_daily_data[(indv_daily_data$X_uuid %in% j) & (indv_daily_data[child_col]==1),]
+    
+    # paste all of the repeat instances together:
+    temp = paste(temp$repeat_instance_name, collapse = ", ")
+    
+    # Find where to add this data into the nutrition_barriers_not_accessed_inconsistency dataframe:
+    nutrition_barriers_not_accessed_inconsistency[which(nutrition_barriers_not_accessed_inconsistency$X_uuid==j), repeat_col] = temp
+    }
+  }
+}
+
+
+# ---
+
+# Print the tables:
 kable_styling(kable(x = nutrition_barriers_not_accessed_inconsistency %>% 
                       filter(child_taken_no_support =="yes") %>%
-                      select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
+                      select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, repeat_instance_no_support,
                              # child_taken_no_support, child_not_taken_after_referral,
                              # nutrition_barriers_not_accessed_cols, nutrition_barriers_not_accessed.already_referred,
                              child_taken_no_support_HH_count, child_not_taken_after_referral_HH_count, nutrition_barriers_not_accessed),
@@ -1435,13 +1477,14 @@ kable_styling(kable(x = nutrition_barriers_not_accessed_inconsistency %>%
 
 kable_styling(kable(x = nutrition_barriers_not_accessed_inconsistency %>% 
                       filter(child_not_taken_after_referral == "yes") %>%
-                      select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name,
+                      select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, repeat_instance_not_taken,
                              # child_taken_no_support, child_not_taken_after_referral,
                              # nutrition_barriers_not_accessed_cols, nutrition_barriers_not_accessed.already_referred,
                              child_taken_no_support_HH_count, child_not_taken_after_referral_HH_count, nutrition_barriers_not_accessed),
                     longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
                     caption = "nutrition_barriers_not_accessed_inconsistency: child_not_taken_after_referral. child_not_taken_after_referral_HH_count>0 & != not already_referred"),
               position = "center")
+
 ```
 
 ---
@@ -1604,6 +1647,25 @@ kable_styling(kable(x = hh_consent_daily[
   caption = "Flag if selling_labor, child_working_long_hours, adults_working_long_hours, risk_jobs, hh_migration == “exhausted” "),
   "striped")
 
+# For all strategies “not_available” is selected:
+  # Find the strategies:
+  coping_strategies = survey_sheet$name[which(survey_sheet$type == "select_one livelihood_coping")]
+  coping_strategies = hh_consent_daily[c(ID_cols, coping_strategies)]
+  
+  
+  # Find which rows have dont_knows:
+  coping_strategies$flag = apply(coping_strategies, 1, function(x) length(which(x=="not_available")))
+  
+  # Find which columns have dont_knows:
+  c = apply(coping_strategies, 2, function(x) length(which(x=="not_available")))
+  c = names(which(c>0))
+  
+  # Print out the remaining dataset:
+  coping_strategies = coping_strategies[coping_strategies$flag>0, c(ID_cols, c)]
+  
+  # Print table
+  kable_styling(kable(x = coping_strategies, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
+                      caption = "For all strategies “not_available” is selected."), "striped")
 
 ```
 
@@ -2144,13 +2206,13 @@ kable_styling(kable(x = fuel_expenditure_inconsistency, longtable = T, booktabs 
 Should flag unusually high/low values for each and the sum. [Per capita]
 ```{r eval=TRUE, echo=FALSE, results='asis', warning=FALSE, messages=FALSE}
 
-expenditures = c("shelter_expenditure", "infreq_nfi_expenditure", "health_expenditure", "education_expenditure", "debt_expenditure")
+expenditures = c("shelter_expenditure", "infreq_nfi_expenditure", "health_expenditure", "education_expenditure", "livelihood_expenditure", "debt_expenditure")
 
 # Sum the expenditures per capita:
 hh_consent_full$total_expenditure = rowSums(hh_consent_full[,expenditures], na.rm = TRUE) 
 
 # Set up a matrix to hold the stats:
-expenditures = matrix(ncol = 6, nrow = 4, data = NA, 
+expenditures = matrix(ncol = length(expenditures)+1, nrow = 4, data = NA, 
                       dimnames = list(c("mean", "SD", "mean-2SD", "mean+2SD"), 
                                       c(expenditures, "total_expenditure")))
 
@@ -2175,7 +2237,7 @@ expenditures_data_day <- hh_consent_daily[, c("reported_date", "X_uuid", "enumer
 
 # Store the origional data:
 expenditures_data_day_origional = expenditures_data_day
-colnames(expenditures_data_day_origional) = paste0("ORIGIONAL_", colnames(expenditures_data_day_origional))
+colnames(expenditures_data_day_origional) = paste0("Origional_", colnames(expenditures_data_day_origional))
 
 # Make sure that this is per capita:
 expenditures_data_day[colnames(expenditures)] = expenditures_data_day[colnames(expenditures)] / hh_consent_daily$hh_size
@@ -2194,6 +2256,9 @@ expenditures_data_day <- expenditures_data_day %>% mutate(
   
   health_exp = case_when((health_expenditure < expenditures[3, "health_expenditure"] |
                             health_expenditure > expenditures[4, "health_expenditure"])~"yes", TRUE~"no"),
+  
+  livelihood_exp = case_when((education_expenditure < expenditures[3, "livelihood_expenditure"] |
+                               education_expenditure > expenditures[4, "livelihood_expenditure"])~"yes", TRUE~"no"),
   
   education_exp = case_when((education_expenditure < expenditures[3, "education_expenditure"] |
                                education_expenditure > expenditures[4, "education_expenditure"])~"yes", TRUE~"no"),
@@ -2228,7 +2293,7 @@ for(i in 1:length(cols)){
           select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, relevant_cols[i], concol)
 
   # Add on the origional data:
-  c = paste0("ORIGIONAL_", substr(x = concol, start = 1, stop = nchar(concol)-4), "_expenditure")
+  c = paste0("Origional_", substr(x = concol, start = 1, stop = nchar(concol)-4), "_expenditure")
   x[c] = expenditures_data_day_origional[,c]
 
   # Filter this to the rows of interest:
