@@ -8,38 +8,32 @@ code_folding: hide
 ---
 
 
-```{r For_Testing, eval=TRUE, echo=FALSE}
+```{r For_Testing, eval=FALSE, echo=FALSE}
 # TODO - check that eval=TRUE
 # https://stackoverflow.com/questions/64904061/kable-styling-inside-a-loop
 # # --- Testing:
 
 # Data Paths (CHANGE) -----------------------------------------------------
 
-population      <- c("host","refugee")[2]
+population <- c("host","refugee")[1]
 
-data_path     <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day4/")
-audit_zip_dir <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day4/")
+data_path <- audit_zip_dir <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day5/")
 
-# CAMP MONDAY
-# data_file_name  <- "Camp_JMSNA_2021_-_all_versions_-_False_-_2021-07-12-12-57-45.xlsx"
-# audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_12_13_00_34"
+# CAMP THURSDAY
+# data_file_name  <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-15-12-31-51.xlsx"
+# audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_15_12_33_07"
 
-# CAMP TUESDAY
-# data_file_name  <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-13-13-15-57.xlsx"
-# audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_13_13_17_34"
-
-# HOST MONDAY
-# data_file_name  <- "Host_JMSNA_2021_-_all_versions_-_False_-_2021-07-12-12-46-22.xlsx"
-# audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_12_12_47_37"
-
-# CAMP Wednesday
-data_file_name  <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-15-12-31-51.xlsx"
-audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_15_12_33_07"
-
-# HOST Wednesday
+# HOST THURSDAY
 # data_file_name  <- "Host_JMSNA_2021_-_latest_version_-_False_-_2021-07-15-13-04-42.xlsx"
 # audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_15_13_05_28"
 
+# HOST SUNDAY:
+data_file_name  <- "Host_JMSNA_2021_-_latest_version_-_False_-_2021-07-18-12-56-21.xlsx"
+audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_18_12_58_50"
+
+# REFUGEE SUNDAY:
+# data_file_name  <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-18-12-32-51.xlsx"
+# audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_18_12_36_20"
 
 
 # Setup -------------------------------------------------------------------
@@ -80,7 +74,7 @@ audit_node <- paste0("/", unlist(strsplit(audit_name, "_"))[1], "/")
 
 ```{r setup, include=FALSE}
 # If you are editing this script and need to set the working directory of the chunks, use this: Else it will run from the project directory.
-knitr::opts_knit$set(root.dir = "C:/Users/Ben SMITH/SynDrive/REACH_BGD/REACH/Ongoing/70XXX - J-MSNA 2021/04 Data Analysis")
+# knitr::opts_knit$set(root.dir = "C:/Users/Ben SMITH/SynDrive/REACH_BGD/REACH/Ongoing/70XXX - J-MSNA 2021/04 Data Analysis")
 
 knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
 ```
@@ -768,18 +762,25 @@ shelter_issues_reason_inconsistency <- hh_consent_daily %>% mutate(
   window = case_when((shelter_issues_reason.damage_windows==1 & (leaks_during_rain!="yes" & lack_of_insulation!= "yes"))~"yes", T~"no"),
   structure = case_when((shelter_issues_reason.structure_unstable==1 & collapse_living_there!= "yes")~"yes",T~ "no"),
   trap_heat = case_when((shelter_issues_reason.materials_trap_heat==1 & limited_ventilation != "yes")~"yes",T~ "no"),
-  lack_insulation = case_when((shelter_issues_reason.materials_dont_insulate==1 & lack_of_insulation!= "yes")~"yes",T~ "no"),
-  colapse = case_when((hh_consent_daily$collapse_living_there =="yes" | hh_consent_daily$collapse_with_other_hh =="yes" | 
-                         hh_consent_daily$with_other_hh =="yes" | hh_consent_daily$collapse_in_open =="yes")~"yes",T~ "no"))
+  lack_insulation = case_when((shelter_issues_reason.materials_dont_insulate==1 & lack_of_insulation!= "yes")~"yes",T~ "no"))
+
 
 if(population == "refugee"){
+  
+  shelter_issues_reason_inconsistency$collapse = case_when(
+    (hh_consent_daily$collapse_living_there =="yes" | 
+       hh_consent_daily$collapse_with_other_hh =="yes" | 
+       hh_consent_daily$with_other_hh =="yes" | 
+       hh_consent_daily$collapse_in_open =="yes")~"yes",T~ "no")
   
   shelter_issues_reason_inconsistency = shelter_issues_reason_inconsistency %>% 
     select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, shelter_issues_reason, leaks_during_rain, 
          lack_of_insulation, collapse_living_there, roof, window, structure, trap_heat, lack_insulation, limited_ventilation, 
-         colapse, collapse_with_other_hh, with_other_hh, collapse_in_open)
-
-  } else{
+         collapse, collapse_with_other_hh, with_other_hh, collapse_in_open)
+  
+  } else {
+    
+    shelter_issues_reason_inconsistency$collapse = case_when(hh_consent_daily$collapse_living_there =="yes" ~"yes", TRUE~ "no")
     
     shelter_issues_reason_inconsistency = shelter_issues_reason_inconsistency %>% 
     select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, shelter_issues_reason, leaks_during_rain, 
@@ -801,17 +802,15 @@ for(i in c("roof", "window", "structure", "trap_heat", "lack_insulation")){
   
 }
 
-# if(population == "refugee"){
 # Add the collapse indicators separately so that there is more space in the above tables, combine these if you have time.
-x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency$colapse== "yes",] %>% 
+if(population == "refugee"){collapse_cols = c("collapse_living_there", "collapse_with_other_hhm", "with_other_hh", "collapse_in_open")
+} else {collapse_cols = "collapse_living_there"}
+
+x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency$collapse== "yes",] %>% 
     select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, 
-           shelter_issues_reason, leaks_during_rain, lack_of_insulation, collapse_living_there, limited_ventilation,
-           colapse, collapse_with_other_hh, with_other_hh, collapse_in_open)
-kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "Colapse"), "striped")
-# }
-
-  
-
+           shelter_issues_reason, leaks_during_rain, lack_of_insulation, limited_ventilation,
+           collapse_cols)
+kable_styling(kable(x = x, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "collapse"), "striped")
 
 ```
 
