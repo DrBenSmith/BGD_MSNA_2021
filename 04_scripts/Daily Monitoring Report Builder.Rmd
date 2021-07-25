@@ -8,16 +8,16 @@ code_folding: hide
 ---
 
 
-```{r For_Testing, eval=FALSE, echo=FALSE}
+```{r For_Testing, eval=TRUE, echo=FALSE}
 # TODO - check that eval=TRUE
 # https://stackoverflow.com/questions/64904061/kable-styling-inside-a-loop
 # # --- Testing:
 
 # Data Paths (CHANGE) -----------------------------------------------------
 
-population <- c("host","refugee")[1]
+population <- c("host","refugee")[2]
 
-data_path <- audit_zip_dir <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day5/")
+data_path <- audit_zip_dir <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", population, "/Day6/")
 
 # CAMP THURSDAY
 # data_file_name  <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-15-12-31-51.xlsx"
@@ -28,19 +28,26 @@ data_path <- audit_zip_dir <- paste0("../02 Data Collection and Planning/Quant/4
 # audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_15_13_05_28"
 
 # HOST SUNDAY:
-data_file_name  <- "Host_JMSNA_2021_-_latest_version_-_False_-_2021-07-18-12-56-21.xlsx"
-audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_18_12_58_50"
+# data_file_name  <- "Host_JMSNA_2021_-_latest_version_-_False_-_2021-07-18-12-56-21.xlsx"
+# audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_18_12_58_50"
 
 # REFUGEE SUNDAY:
 # data_file_name  <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-18-12-32-51.xlsx"
 # audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_18_12_36_20"
 
+# HSOT MONDAY
+# data_file_name  <- "Host_JMSNA_2021_-_latest_version_-_False_-_2021-07-19-12-29-14.xlsx"
+# audit_name      <- "aqwujmBVgmCsd2wJW98WWW_2021_07_19_12_30_43"
+
+# CAMP MONDAY
+data_file_name  <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-19-12-18-50.xlsx"
+audit_name      <- "a5C6hZmgWjP2NcTwt5GAb8_2021_07_19_12_20_30"
 
 # Setup -------------------------------------------------------------------
 
 # rm(list = ls())
 library(rmarkdown)
-day_to_run <- Sys.Date()
+day_to_run <- Sys.Date()#-6
 write_csv_output <-c("yes","no")[1]
 
 
@@ -74,7 +81,7 @@ audit_node <- paste0("/", unlist(strsplit(audit_name, "_"))[1], "/")
 
 ```{r setup, include=FALSE}
 # If you are editing this script and need to set the working directory of the chunks, use this: Else it will run from the project directory.
-# knitr::opts_knit$set(root.dir = "C:/Users/Ben SMITH/SynDrive/REACH_BGD/REACH/Ongoing/70XXX - J-MSNA 2021/04 Data Analysis")
+knitr::opts_knit$set(root.dir = "C:/Users/Ben SMITH/SynDrive/REACH_BGD/REACH/Ongoing/70XXX - J-MSNA 2021/04 Data Analysis")
 
 knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
 ```
@@ -99,6 +106,7 @@ library(plotly)
 source("04_scripts/functions/Load_Audit.R")
 source("04_scripts/functions/utils.R")
 ID_cols = c("reported_date", "X_uuid", "enumerator_id", "enumerator_name", "team", "respondent_id", "instance_name")
+if(population=="refugee"){ID_cols = c(ID_cols,"survey_type")}
 
 ```
 
@@ -221,7 +229,7 @@ if(write_csv_output == "yes"){
 
 ```{r Todays_data, echo=FALSE}
 ### Create daily datasets
-
+# hh$survey_type = c("in_person", "remote") # For testing clearning
 # These datasets contain all of the data that has not yet been monitored.
 
 # Household:
@@ -268,30 +276,47 @@ if(population=="host"){
 }
 
 # Create a dataset recording the number of surveys done so far per area and how many consented:
-survey_complete_by_reach <- survey_complete_by_reach %>% summarise(
-  "Total Surveys" = n(),
-  "reached: yes" = sum(reached == "yes", na.rm = T),
-  "reached: nobody_answering" = sum(reached == "nobody_answering", na.rm = T),
-  "reached: inactive_sim" = sum(reached == "inactive_sim", na.rm = T),
-  "consent: yes" = sum(informed_consent =="yes", na.rm = T),
-  "consent: no" = sum(informed_consent =="no", na.rm = T),
-  "consent: not_eligible" = sum(informed_consent =="not_eligible", na.rm = T),
-  "consent: child_headed_hh" = sum(informed_consent =="child_headed_hh", na.rm = T)
-)
-
-if(population=="host"){
-  survey_complete_by_reach <- survey_complete_by_reach[order(survey_complete_by_reach$union_name,
-                                                             survey_complete_by_reach$ward_name),]
-} else {
-  survey_complete_by_reach <- survey_complete_by_reach[order(
-    as.numeric(substr(x = survey_complete_by_reach$camp_name, start = 6, nchar(survey_complete_by_reach$camp_name)))),]
+progress_tracking = function(survey){
+  x = survey %>% summarise(
+    "Total Surveys" = n(),
+    "reached: yes" = sum(reached == "yes", na.rm = T),
+    "reached: nobody_answering" = sum(reached == "nobody_answering", na.rm = T),
+    "reached: inactive_sim" = sum(reached == "inactive_sim", na.rm = T),
+    "consent: yes" = sum(informed_consent =="yes", na.rm = T),
+    "consent: no" = sum(informed_consent =="no", na.rm = T),
+    "consent: not_eligible" = sum(informed_consent =="not_eligible", na.rm = T),
+    "consent: child_headed_hh" = sum(informed_consent =="child_headed_hh", na.rm = T)
+    )
+  return(x)
 }
 
 
-# Create nice tables showing the above outputs:
-kable_styling(kable_input = kable(x = survey_complete_by_reach, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, 
-                                  caption = "Total number of surveys per area (camp/union)."),
-              position = "center")
+if(population=="host"){
+  survey_complete_by_reach <- progress_tracking(survey = survey_complete_by_reach)
+  survey_complete_by_reach <- survey_complete_by_reach[order(survey_complete_by_reach$union_name,
+                                                             survey_complete_by_reach$ward_name),]
+  
+  kable_styling(kable_input = kable(
+    x = survey_complete_by_reach, longtable = T, booktabs = T, linesep = "", align = "c",
+    row.names = FALSE, caption = "Total number of surveys per area (union)."), position = "center")
+  
+} else {
+  # Remote:
+  survey_complete_by_reach <- progress_tracking(survey_complete_by_reach %>% filter(survey_type != "in_person"))
+  survey_complete_by_reach <- survey_complete_by_reach[order(
+    as.numeric(substr(x = survey_complete_by_reach$camp_name, start = 6,
+                      nchar(survey_complete_by_reach$camp_name)))),]
+  # In Person:
+  survey_complete_by_reach_imp <- progress_tracking(survey_complete_by_reach %>% filter(survey_type=="in_person"))
+  survey_complete_by_reach_imp <- survey_complete_by_reach_imp[order(
+    as.numeric(substr(x = survey_complete_by_reach_imp$camp_name, start = 6,
+                      nchar(survey_complete_by_reach_imp$camp_name)))),]
+  
+  kable_styling(kable_input = kable(x = survey_complete_by_reach, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "Total number of remote surveys per camp."), position = "center")
+  
+  kable_styling(kable_input = kable(x = survey_complete_by_reach_imp, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE, caption = "Total number of in person surveys per camp."), position = "center")
+    
+}
 
 ```
 
@@ -315,7 +340,7 @@ duplicate_id = duplicate_id[duplicate_id %in% hh_consent_daily$respondent_id]
 
 check_duplicate_respondent_id <- hh_consent_full %>% 
   filter(respondent_id %in% duplicate_id) %>%
-  select(c("reported_date","X_uuid","enumerator_id","respondent_id", "enumerator_name", "team", "instance_name")) %>%
+  select(c("reported_date","X_uuid","enumerator_id","respondent_id", "enumerator_name", "team", "instance_name")) %>% 
   arrange(respondent_id)
 
 kable_styling(kable_input = kable(x = check_duplicate_respondent_id,
@@ -345,9 +370,9 @@ kable_styling(kable_input = kable(x = check_duplicate_respondent_id,
 # TODO - check whether this manages cases where no FCN given
 if(population=="refugee"){
   
-  FCN_missmatch <- left_join(x = hh_consent_daily[,c("X_uuid", "enumerator_id", "respondent_id", "reported_date", "enumerator_name", "team", "instance_name",
+  FCN_missmatch <- left_join(x = hh_consent_daily[, c("X_uuid", "enumerator_id", "respondent_id", "reported_date", "enumerator_name", "team", "instance_name",
                                                      "respondent_id", "hh_fcn", "camp_name")],
-                            y = FCNs[,c("FCN","respondent_id", "Camp")],
+                            y = FCNs[, c("FCN","respondent_id", "Camp")],
                              by = c("respondent_id"="respondent_id")) 
   
   FCN_missmatch$wrong_FCN <- FCN_missmatch$hh_fcn != FCN_missmatch$FCN
@@ -803,7 +828,7 @@ for(i in c("roof", "window", "structure", "trap_heat", "lack_insulation")){
 }
 
 # Add the collapse indicators separately so that there is more space in the above tables, combine these if you have time.
-if(population == "refugee"){collapse_cols = c("collapse_living_there", "collapse_with_other_hhm", "with_other_hh", "collapse_in_open")
+if(population == "refugee"){collapse_cols = c("collapse_living_there", "collapse_with_other_hh", "with_other_hh", "collapse_in_open")
 } else {collapse_cols = "collapse_living_there"}
 
 x = shelter_issues_reason_inconsistency[shelter_issues_reason_inconsistency$collapse== "yes",] %>% 
@@ -1646,8 +1671,23 @@ kable_styling(kable(x = hh_consent_daily[
   caption = "Flag if selling_labor, child_working_long_hours, adults_working_long_hours, risk_jobs, hh_migration == “exhausted” "),
   "striped")
 
+# # •	selling_labor, child_working_long_hours, adults_working_long_hours, risk_jobs, hh_migration == “exhausted” 
+# kable_styling(kable(x = hh_consent_daily[
+#   c(hh_consent_daily$selling_labor=="exhaused" |
+#       hh_consent_daily$child_working_long_hours=="exhaused" |
+#       hh_consent_daily$adults_working_long_hours=="exhaused" |
+#       hh_consent_daily$risk_jobs=="exhaused" |
+#       hh_consent_daily$hh_migration=="exhaused"),
+#   c("reported_date", "X_uuid", "enumerator_id", "enumerator_name", "team", "respondent_id", "instance_name",
+#     "selling_labor", "child_working_long_hours", "adults_working_long_hours", "risk_jobs", "hh_migration")],
+#   longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
+#   caption = "Flag if selling_labor, child_working_long_hours, adults_working_long_hours, risk_jobs, hh_migration == “exhausted” "),
+#   "striped")
+
+
 # For all strategies “not_available” is selected:
   # Find the strategies:
+  # coping_strategies = c("selling_labor", "child_working_long_hours", "adults_working_long_hours", "risk_jobs", "hh_migration")
   coping_strategies = survey_sheet$name[which(survey_sheet$type == "select_one livelihood_coping")]
   coping_strategies = hh_consent_daily[c(ID_cols, coping_strategies)]
   
@@ -1656,14 +1696,14 @@ kable_styling(kable(x = hh_consent_daily[
   coping_strategies$flag = apply(coping_strategies, 1, function(x) length(which(x=="not_available")))
   
   # Find which columns have dont_knows:
-  c = apply(coping_strategies, 2, function(x) length(which(x=="not_available")))
-  c = names(which(c>0))
+  # c = apply(coping_strategies, 2, function(x) length(which(x=="not_available")))
+  # c = names(which(c>0))
   
   # Print out the remaining dataset:
-  coping_strategies = coping_strategies[coping_strategies$flag>0, c(ID_cols, c)]
+  # coping_strategies = coping_strategies[coping_strategies$flag>0, c(ID_cols, c)]
   
   # Print table
-  kable_styling(kable(x = coping_strategies, longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
+  kable_styling(kable(x = coping_strategies %>% filter(flag==17), longtable = T, booktabs = T, linesep = "", align = "c", row.names = FALSE,
                       caption = "For all strategies “not_available” is selected."), "striped")
 
 ```
@@ -2230,11 +2270,11 @@ for(e in colnames(expenditures)){
 
 
 # Run through the daily dataset and find instances where this values are outliers:
-hh_consent_daily$total_expenditure <- rowSums(hh_consent_daily[, colnames(expenditures)[1:5]], na.rm = TRUE)
+hh_consent_daily$total_expenditure <- rowSums(hh_consent_daily[, colnames(expenditures)[1:6]], na.rm = TRUE)
 
 expenditures_data_day <- hh_consent_daily[, c("reported_date", "X_uuid", "enumerator_id", "enumerator_name", "team", "respondent_id", "instance_name",  colnames(expenditures))]
 
-# Store the origional data:
+# Store the original data:
 expenditures_data_day_origional = expenditures_data_day
 colnames(expenditures_data_day_origional) = paste0("Origional_", colnames(expenditures_data_day_origional))
 
@@ -2256,8 +2296,8 @@ expenditures_data_day <- expenditures_data_day %>% mutate(
   health_exp = case_when((health_expenditure < expenditures[3, "health_expenditure"] |
                             health_expenditure > expenditures[4, "health_expenditure"])~"yes", TRUE~"no"),
   
-  livelihood_exp = case_when((education_expenditure < expenditures[3, "livelihood_expenditure"] |
-                               education_expenditure > expenditures[4, "livelihood_expenditure"])~"yes", TRUE~"no"),
+  livelihood_exp = case_when((livelihood_expenditure < expenditures[3, "livelihood_expenditure"] |
+                               livelihood_expenditure > expenditures[4, "livelihood_expenditure"])~"yes", TRUE~"no"),
   
   education_exp = case_when((education_expenditure < expenditures[3, "education_expenditure"] |
                                education_expenditure > expenditures[4, "education_expenditure"])~"yes", TRUE~"no"),
@@ -2291,7 +2331,7 @@ for(i in 1:length(cols)){
   x = expenditures_data_day %>% # %>% filter(expenditures_data_day[concol] == "yes") 
           select(reported_date, X_uuid, enumerator_id, enumerator_name, team, respondent_id, instance_name, relevant_cols[i], concol)
 
-  # Add on the origional data:
+  # Add on the original data:
   c = paste0("Origional_", substr(x = concol, start = 1, stop = nchar(concol)-4), "_expenditure")
   x[c] = expenditures_data_day_origional[,c]
 
