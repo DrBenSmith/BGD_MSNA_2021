@@ -1,16 +1,84 @@
+# MSNA 2021
+# Adding composite variables
+# 26/07/2021
+# Ben Smith | Cara Kielwein
+
+# Preamble -----------------------------------------------------------------
+
+# Load in libraries
+library(tidyr)
+library(dplyr)
+library(readxl)
+library(openxlsx)
+
+setwd("C:/Users/Ben SMITH/SynDrive/REACH_BGD/REACH/Ongoing/70XXX - J-MSNA 2021/04 Data Analysis/") # BEN
+# setwd("C:/Users/Cara.../REACH_BGD/REACH/Ongoing/70XXX - J-MSNA 2021/04 Data Analysis/04_scripts") # CARA
+
+# Set the population of the dataset you are working with:
+pop <- c("host", "refugee")[2]
+
+# Input path (should not have to change often):
+data_path <- paste0("../02 Data Collection and Planning/Quant/4_Data_collection/", pop, "/Day7/")
+
+# Input Data (you will need to change this when you switch between datasets):
+data_file_name <- "Camp_JMSNA_2021_-_latest_version_-_False_-_2021-07-25-13-17-33.xlsx"
+
+# Output paths:
+hh_path <- paste0("02_inputs/", pop, "/01_raw_data/hh.csv")
+indv_path <- paste0("02_inputs/", pop, "/01_raw_data/indv.csv")
+indv_dis_repeat_path <- paste0("02_inputs/", pop, "/01_raw_data/indv2.csv")
+
+# Convert the data from xlsx to csv's:
+# This is because it is read into R better as csv's, but we do not want to do this conversion manually.
+# This will overwrite the previous csv's.
+
+# hh
+data_sheet = read_xlsx(paste0(data_path, data_file_name), sheet = 1); write.csv(x = data_sheet, file = hh_path, row.names = FALSE)
+# indv
+data_sheet = read_xlsx(paste0(data_path, data_file_name), sheet = 2); write.csv(x = data_sheet, file = indv_path, row.names = FALSE)
+# indv_disability_repeat
+data_sheet = read_xlsx(paste0(data_path, data_file_name), sheet = 3); write.csv(x = data_sheet, file = indv_dis_repeat_path, row.names = FALSE)
+
+# load data from csv's:
+hh <- read.csv(hh_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA))
+indv <- read.csv(indv_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA))
+indv_dis_repeat <- read.csv(indv_dis_repeat_path, stringsAsFactors = FALSE, na.strings=c("", " ", NA))
+
+# Change some of the column names in the individual datasets:
+  # 1. X_submission__uuid in indv
+  names(indv) <- gsub(x =  names(indv), pattern = "X_submission__uuid", replacement = "X_uuid")
+  names(indv) <- gsub(x =  names(indv), pattern = "_submission__uuid", replacement = "X_uuid") # Should be the above, but this covers whether the X is lost or not
+  # 2. X_submission__uuid in indv_dis_repeat
+  names(indv_dis_repeat) <- gsub(x = names(indv_dis_repeat), pattern = "X_submission__uuid", replacement = "X_uuid",)
+  names(indv_dis_repeat) <- gsub(x = names(indv_dis_repeat), pattern = "_submission__uuid", replacement = "X_uuid",)
+  # 3. ind_number_dis in indv_dis_repeat
+  names(indv_dis_repeat) <- gsub(x = names(indv_dis_repeat), pattern = "ind_number_dis", replacement = "ind_number")
+
+# Filter the data to only consenting households:
+  # hh_consent  <- hh   %>% filter(informed_consent =="yes")
+  # indv_data   <- indv %>% filter(X_uuid %in% hh_consent$X_uuid)
+  # indv_dis_repeat_data <- indv_dis_repeat %>% filter(X_uuid %in% hh_consent$X_uuid)
+
 # Household/individual information -----------------------------------------
 
 # --- all_consenting ---  [For analysis]
 # [From hh to hh. All HH
 # hh_dataset$i.all_consenting	 <- hh_dataset ...	if (informed_consent == 'yes', 1, 0)
+hh <- hh %>% mutate(i.all_consenting = case_when(informed_consent=="yes" ~ 1, TRUE~0))
 
 # --- hoh_gender ---
 # [From hh to hh. Head of household gender
 # hh_dataset$i.hoh_gender	 <- hh_dataset ...	if (respondent_hoh == 'yes', resp_gender, hoh_gender)
+hh$i.hoh_gender <- case_when((hh$respondent_hoh=="yes" &  hh$resp_gender==hh$hoh_gender)~ 1, TRUE~0) # TRUE does NOT mean true, it means 'if it exists'
+  # Check using: head(hh[, c("respondent_hoh", "resp_gender", "hoh_gender", "i.hoh_gender")], 40)
+  # Check using: head(hh %>% select(respondent_hoh, resp_gender, hoh_gender, i.hoh_gender) %>% filter(i.hoh_gender==1), 40)
+  # Check using: View(hh %>% select(respondent_hoh, resp_gender, hoh_gender, i.hoh_gender))
 
 # --- hoh_age ---
 # [From hh to hh. Head of household age
 # hh_dataset$i.hoh_age	 <- hh_dataset ...	if (respondent_hoh == 'yes', respondent_age, hoh_age)
+hh$i.hoh_age = rep(0, nrow(hh))
+hh$i.hoh_age[which(hh$respondent_hoh=="yes" &  hh$respondent_age==hh$hoh_age)] = 1
 
 # --- demographics ---
 # [From indv to indv. Sample demographics
@@ -74,31 +142,31 @@
 
 # --- hh_no_bangla_english ---  [refugee]
 # [From hh to hh. HH not speaking neither English nor Bangla
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.hh_no_bangla_english	 <- hh_dataset ...	if (hh_languages_spoken != 'bangla' & hh_languages_spoken != 'english', 1, 0)
 # }
 
 # --- arrival_bgd_reva ---  [refugee]
 # [From hh to hh. Align arrival date with REVA
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.arrival_bgd_reva	 <- hh_dataset ...	3 categories: Before October 2016: bef_oct_2016; October 2016 to 24 August 2017: oct_2016_aug_2017; After 24 August 2017: sep_2017_feb_2020, mar_2020_mar_2021, after_mar_2021
 # }
 
 # --- arrival_camp_reva ---  [refugee]
 # [From hh to hh. Align arrival date with REVA
-# if(pop==refugee){
-#    	hh_dataset$i.arrival_camp_reva	 <- hh_dataset ...	3 categories: Before October 2016: bef_oct_2016; October 2016 to 24 August 2017: oct_2016_aug_2017; After 24 August 2017: sep_2017_feb_2020, mar_2020_mar_2021, after_mar_2021
-# }
+if(pop=="refugee"){
+   	hh_dataset$i.arrival_camp_reva	 <- hh_dataset ...	3 categories: Before October 2016: bef_oct_2016; October 2016 to 24 August 2017: oct_2016_aug_2017; After 24 August 2017: sep_2017_feb_2020, mar_2020_mar_2021, after_mar_2021
+}
 
 # --- highest_edu_hh ---  [refugee]
 # [From hh to hh. Aggregate highest level of education in HH into 3 categories
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.highest_edu_hh	 <- hh_dataset ...	3 categories: No formal education: No education or Madrassa only (no_education, madrassa_only); Some primary: Kindergarten up to Elementary Standard 4 (kindergarten, standard_1, standard_2, standard_3, standard_4); Primary and above: Elementary Standard 5 or more (standard_5 to standard_11, tertiary_education)
 # }
 
 # --- highest_edu_hh ---  [host]
 # [From hh to hh. Aggregate highest level of education in HH into 3 categories
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.highest_edu_hh	 <- hh_dataset ...	3 categories: Primary or less: No education, Madrassah only, level 1 to 5 (no_education, madrasah_only, 1-5); Some secondary: Level 6 to 11 (6-11); Secondary and above: 12 and above (12, above_grade_12, vocational)
 # }
 
@@ -106,19 +174,19 @@
 
 # --- vulnerable_shelter ---  [host]
 # [From hh to hh. HH staying in vulnerable shelter types
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.vulnerable_shelter	 <- hh_dataset ...	if (shelter_type == 'jhuprie' | shelter_type == 'kutcha', 'vulnerable', if (shelter_type == 'pucca' | shelter_type == 'semi_pucca', 'not_vulnerable', if(shelter_type == 'none_with_other_hh' | shelter_type == 'none_in_open', 'none', NA)))
 # }
 
 # --- shelter_issues_hh ---  [refugee]
 # [From hh to hh. HH with at least one shelter issue
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.shelter_issues_hh	 <- hh_dataset ...	if (at least one of the following == 'yes' - leaks_during_rain, limited_ventilation, dirt_debris, lack_of_insulation, collapse_living_there, collapse_with_other_hh, with_other_hh, collapse_in_open)
 # }
 
 # --- shelter_issues_hh ---  [host]
 # [From hh to hh. HH with at least one shelter issue
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.shelter_issues_hh	 <- hh_dataset ...	if (at least one of the following == 'yes' - leaks_during_rain, limited_ventilation, dirt_debris, lack_of_insulation, collapse_living_there)
 # }
 
@@ -143,7 +211,7 @@
 
 # --- hlp_disputes ---  [host]
 # [From hh to hh. HH reporting any HLP disputes
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.hlp_disputes	 <- hh_dataset ...	if (hlp_disputes != 'no_issues' & hlp_disputes != 'dont_know', 1, 0)
 # }
 
@@ -160,7 +228,7 @@
 
 # --- only_lpg ---  [host]
 # [From hh to hh. HH having used exclusively LPG
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.only_lpg	 <- hh_dataset ...	if (cooking_fuel is ONLY 'receiving_lpg_refills' OR 'buying_lpg_refills', 1, 0)
 # }
 
@@ -200,19 +268,19 @@
 
 # --- mobility_issues_children_hh ---  [refugee]
 # [From hh to hh. HH reporting at least 1 mobility issue for children
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.mobility_issues_children_hh	 <- hh_dataset ...	if (mobility_issues_children != 'no_issue' & mobility_issues_children != 'dont_know, 1, 0)
 # }
 
 # --- mobility_issues_women_hh ---  [refugee]
 # [From hh to hh. HH reporting at least 1 mobility issue for women
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.mobility_issues_women_hh	 <- hh_dataset ...	if (mobility_issues_women != 'no_issue' & mobility_issues_women != 'dont_know, 1, 0)
 # }
 
 # --- mobility_issues_men_hh ---  [refugee]
 # [From hh to hh. HH reporting at least 1 mobility issue for men
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.mobility_issues_men_hh	 <- hh_dataset ...	if (mobility_issues_men != 'no_issue' & mobility_issues_men != 'dont_know, 1, 0)
 # }
 
@@ -364,73 +432,73 @@
 
 # --- enrolment_girls_3_5 ---  [refugee]
 # [From hh to hh. Enrolled girls aged 3-5
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.enrolment_girls_3_5	 <- hh_dataset ...	sum (enrolment_girls_3, enrolment_girls_4_5)
 # }
 
 # --- enrolment_boys_3_5 ---  [refugee]
 # [From hh to hh. Enrolled boys aged 3-5
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.enrolment_boys_3_5	 <- hh_dataset ...	sum (enrolment_boys_3, enrolment_boys_4_5)
 # }
 
 # --- enrolment_girls_3_24 ---  [refugee]
 # [From hh to hh. Enrolled girls aged 3-24
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.enrolment_girls_3_24	 <- hh_dataset ...	sum (enrolment_girls_3, enrolment_girls_4_5, enrolment_girls_6_14, enrolment_girls_15_18, enrolment_girls_19_24)
 # }
 
 # --- enrolment_boys_3_24 ---  [refugee]
 # [From hh to hh. Enrolled boys aged 3-24
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.enrolment_boys_3_24	 <- hh_dataset ...	sum (enrolment_boys_3, enrolment_boys_4_5, enrolment_boys_6_14, enrolment_boys_15_18, enrolment_boys_19_24)
 # }
 
 # --- enrolment_girls_6_18 ---  [refugee]
 # [From hh to hh. Enrolled girls aged 6-18
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.enrolment_girls_6_18	 <- hh_dataset ...	sum (enrolment_girls_6_14, enrolment_girls_15_18)
 # }
 
 # --- enrolment_boys_6_18 ---  [refugee]
 # [From hh to hh. Enrolled boys aged 6-18
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.enrolment_boys_6_18	 <- hh_dataset ...	sum (enrolment_boys_6_14, enrolment_boys_15_18)
 # }
 
 # --- enrolment_girls_3_24_hh ---  [refugee]
 # [From hh to hh. HH with at least one girl aged 3-24 not enrolled
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.enrolment_girls_3_24_hh	 <- hh_dataset ...	Use enrolment fields against individual count fields to categorize 'all_enrolled' (all girls aged 3-24 in HH enrolled) and 'not_all_enrolled' (at least one girl aged 3-24 in HH not enrolled)
 # }
 
 # --- enrolment_boys_3_24_hh ---  [refugee]
 # [From hh to hh. HH with at least one boy aged 3-24 not enrolled
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.enrolment_boys_3_24_hh	 <- hh_dataset ...	Use enrolment fields against individual count fields to categorize 'all_enrolled' (all boys aged 3-24 in HH enrolled) and 'not_all_enrolled' (at least one boy aged 3-24 in HH not enrolled)
 # }
 
 # --- enrolment_girls_6_18_hh ---  [refugee]
 # [From hh to hh. HH with at least one girl aged 6-18 not enrolled
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.enrolment_girls_6_18_hh	 <- hh_dataset ...	As above but different age range
 # }
 
 # --- enrolment_boys_6_18_hh ---  [refugee]
 # [From hh to hh. HH with at least one boy aged 6-18 not enrolled
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.enrolment_boys_6_18_hh	 <- hh_dataset ...	As above but different age range
 # }
 
 # --- enrolment_children_3_24_hh ---  [refugee]
 # [From hh to hh. HH with at least one child aged 3-24 not enrolled
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.enrolment_children_3_24_hh	 <- hh_dataset ...	As above but for boys/girls together
 # }
 
 # --- enrolment_children_6_18_hh ---  [refugee]
 # [From hh to hh. HH with at least one child aged 6-18 not enrolled
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.enrolment_children_6_18_hh	 <- hh_dataset ...	As above but for boys/girls together
 # }
 
@@ -444,253 +512,253 @@
 
 # --- formal_enrolment_girls_4_18 ---  [host]
 # [From hh to hh. Enrolled girls aged 4-18 (formal edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.formal_enrolment_girls_4_18	 <- hh_dataset ...	sum (formal_enrolment_girls_4_5, formal_enrolment_girls_6_14, formal_enrolment_girls_15_18)
 # }
 
 # --- formal_enrolment_boys_4_18 ---  [host]
 # [From hh to hh. Enrolled boys aged 4-18 (formal edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.formal_enrolment_boys_4_18	 <- hh_dataset ...	sum (formal_enrolment_boys_4_5, formal_enrolment_boys_6_14, formal_enrolment_boys_15_18)
 # }
 
 # --- formal_enrolment_girls_6_18 ---  [host]
 # [From hh to hh. Enrolled girls aged 6-18 (formal edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.formal_enrolment_girls_6_18	 <- hh_dataset ...	sum (formal_enrolment_girls_6_14, formal_enrolment_girls_15_18)
 # }
 
 # --- formal_enrolment_boys_6_18 ---  [host]
 # [From hh to hh. Enrolled boys aged 6-18 (formal edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.formal_enrolment_boys_6_18	 <- hh_dataset ...	sum (formal_enrolment_boys_6_14, formal_enrolment_boys_15_18)
 # }
 
 # --- formal_enrolment_girls_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one girl aged 4-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.formal_enrolment_girls_4_18_hh	 <- hh_dataset ...	Use formal enrolment fields against individual count fields to categorize 'all_enrolled' (all girls aged 4-18 in HH enrolled) and 'not_all_enrolled' (at least one girl aged 4-18 in HH not enrolled)
 # }
 
 # --- formal_enrolment_boys_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one boy aged 4-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.formal_enrolment_boys_4_18_hh	 <- hh_dataset ...	Use formal enrolment fields against individual count fields to categorize 'all_enrolled' (all boys aged 4-18 in HH enrolled) and 'not_all_enrolled' (at least one boy aged 4-18 in HH not enrolled)
 # }
 
 # --- formal_enrolment_girls_6_18_hh ---  [host]
 # [From hh to hh. HH with at least one girl aged 6-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.formal_enrolment_girls_6_18_hh	 <- hh_dataset ...	As above but different age range
 # }
 
 # --- formal_enrolment_boys_6_18_hh ---  [host]
 # [From hh to hh. HH with at least one boy aged 6-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.formal_enrolment_boys_6_18_hh	 <- hh_dataset ...	As above but different age range
 # }
 
 # --- formal_enrolment_children_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one child aged 4-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.formal_enrolment_children_4_18_hh	 <- hh_dataset ...	As above but for boys/girls together
 # }
 
 # --- formal_enrolment_children_6_18_hh ---  [host]
 # [From hh to hh. HH with at least one child aged 6-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.formal_enrolment_children_6_18_hh	 <- hh_dataset ...	As above but for boys/girls together
 # }
 
 # --- informal_enrolment_girls_4_18 ---  [host]
 # [From hh to hh. Enrolled girls aged 4-18 (informal edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.informal_enrolment_girls_4_18	 <- hh_dataset ...	sum (informal_enrolment_girls_4_5, informal_enrolment_girls_6_14, informal_enrolment_girls_15_18)
 # }
 
 # --- informal_enrolment_boys_4_18 ---  [host]
 # [From hh to hh. Enrolled boys aged 4-18 (informal edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.informal_enrolment_boys_4_18	 <- hh_dataset ...	sum (informal_enrolment_boys_4_5, informal_enrolment_boys_6_14, informal_enrolment_boys_15_18)
 # }
 
 # --- informal_enrolment_girls_6_18 ---  [host]
 # [From hh to hh. Enrolled girls aged 6-18 (informal edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.informal_enrolment_girls_6_18	 <- hh_dataset ...	sum (informal_enrolment_girls_6_14, informal_enrolment_girls_15_18)
 # }
 
 # --- informal_enrolment_boys_6_18 ---  [host]
 # [From hh to hh. Enrolled boys aged 6-18 (informal edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.informal_enrolment_boys_6_18	 <- hh_dataset ...	sum (informal_enrolment_boys_6_14, informal_enrolment_boys_15_18)
 # }
 
 # --- informal_enrolment_girls_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one girl aged 4-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.informal_enrolment_girls_4_18_hh	 <- hh_dataset ...	Use informal enrolment fields against individual count fields to categorize 'all_enrolled' (all girls aged 4-18 in HH enrolled) and 'not_all_enrolled' (at least one girl aged 4-18 in HH not enrolled)
 # }
 
 # --- informal_enrolment_boys_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one boy aged 4-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.informal_enrolment_boys_4_18_hh	 <- hh_dataset ...	Use informal enrolment fields against individual count fields to categorize 'all_enrolled' (all boys aged 4-18 in HH enrolled) and 'not_all_enrolled' (at least one boy aged 4-18 in HH not enrolled)
 # }
 
 # --- informal_enrolment_girls_6_18_hh ---  [host]
 # [From hh to hh. HH with at least one girl aged 6-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.informal_enrolment_girls_6_18_hh	 <- hh_dataset ...	As above but different age range
 # }
 
 # --- informal_enrolment_boys_6_18_hh ---  [host]
 # [From hh to hh. HH with at least one boy aged 6-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.informal_enrolment_boys_6_18_hh	 <- hh_dataset ...	As above but different age range
 # }
 
 # --- informal_enrolment_children_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one child aged 4-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.informal_enrolment_children_4_18_hh	 <- hh_dataset ...	As above but for boys/girls together
 # }
 
 # --- informal_enrolment_children_6_18_hh ---  [host]
 # [From hh to hh. HH with at least one child aged 6-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.informal_enrolment_children_6_18_hh	 <- hh_dataset ...	As above but for boys/girls together
 # }
 
 # --- any_enrolment_girls_4_5 ---  [host]
 # [From hh to hh. Enrolled girls aged 4-5 (any edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_girls_4_5	 <- hh_dataset ...	sum (formal_enrolment_girls_4_5, informal_enrolment_girls_4_5)
 # }
 
 # --- any_enrolment_boys_4_5 ---  [host]
 # [From hh to hh. Enrolled boys aged 4-5 (any edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_boys_4_5	 <- hh_dataset ...	sum (formal_enrolment_boys_4_5, informal_enrolment_boys_4_5)
 # }
 
 # --- any_enrolment_girls_6_14 ---  [host]
 # [From hh to hh. Enrolled girls aged 6-14 (any edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_girls_6_14	 <- hh_dataset ...	sum (formal_enrolment_girls_6_14, informal_enrolment_girls_6_14)
 # }
 
 # --- any_enrolment_boys_6_14 ---  [host]
 # [From hh to hh. Enrolled boys aged 6-14 (any edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_boys_6_14	 <- hh_dataset ...	sum (formal_enrolment_boys_6_14, informal_enrolment_boys_6_14)
 # }
 
 # --- any_enrolment_girls_15_18 ---  [host]
 # [From hh to hh. Enrolled girls aged 15-18 (any edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_girls_15_18	 <- hh_dataset ...	sum (formal_enrolment_girls_15_18, informal_enrolment_girls_15_18)
 # }
 
 # --- any_enrolment_boys_15_18 ---  [host]
 # [From hh to hh. Enrolled boys aged 15-18 (any edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_boys_15_18	 <- hh_dataset ...	sum (formal_enrolment_boys_15_18, informal_enrolment_boys_15_18)
 # }
 
 # --- any_enrolment_girls_4_18 ---  [host]
 # [From hh to hh. Enrolled girls aged 4-18 (any edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_girls_4_18	 <- hh_dataset ...	sum (formal_enrolment_girls_4_18, informal_enrolment_girls_4_18)
 # }
 
 # --- any_enrolment_boys_4_18 ---  [host]
 # [From hh to hh. Enrolled boys aged 4-18 (any edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_boys_4_18	 <- hh_dataset ...	sum (formal_enrolment_girls_4_18, informal_enrolment_girls_4_18)
 # }
 
 # --- any_enrolment_girls_6_18 ---  [host]
 # [From hh to hh. Enrolled girls aged 6-18 (any edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_girls_6_18	 <- hh_dataset ...	sum (formal_enrolment_girls_6_18, informal_enrolment_girls_6_18)
 # }
 
 # --- any_enrolment_boys_6_18 ---  [host]
 # [From hh to hh. Enrolled boys aged 6-18 (any edu)
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_boys_6_18	 <- hh_dataset ...	sum (formal_enrolment_girls_6_18, informal_enrolment_girls_6_18)
 # }
 
 # --- any_enrolment_girls_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one girl aged 4-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_girls_4_18_hh	 <- hh_dataset ...	Use any enrolment fields against individual count fields to categorize 'all_enrolled' (all girls aged 4-18 in HH enrolled) and 'not_all_enrolled' (at least one girl aged 4-18 in HH not enrolled)
 # }
 
 # --- any_enrolment_boys_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one boy aged 4-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_boys_4_18_hh	 <- hh_dataset ...	Use any enrolment fields against individual count fields to categorize 'all_enrolled' (all boys aged 4-18 in HH enrolled) and 'not_all_enrolled' (at least one boy aged 4-18 in HH not enrolled)
 # }
 
 # --- any_enrolment_girls_6_18_hh ---  [host]
 # [From hh to hh. HH with at least one girl aged 6-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_girls_6_18_hh	 <- hh_dataset ...	As above but different age range
 # }
 
 # --- any_enrolment_boys_6_18_hh ---  [host]
 # [From hh to hh. HH with at least one boy aged 6-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_boys_6_18_hh	 <- hh_dataset ...	As above but different age range
 # }
 
 # --- any_enrolment_children_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one child aged 4-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_children_4_18_hh	 <- hh_dataset ...	As above but for boys/girls together
 # }
 
 # --- any_enrolment_children_6_18_hh ---  [host]
 # [From hh to hh. HH with at least one child aged 6-18 not enrolled
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.any_enrolment_children_6_18_hh	 <- hh_dataset ...	As above but for boys/girls together
 # }
 
 # --- distance_learning_girls_3_5 ---  [refugee]
 # [From hh to hh. Distance learning girls aged 3-5
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.distance_learning_girls_3_5	 <- hh_dataset ...	sum (distance_learning_girls_3, distance_learning_girls_4_5)
 # }
 
 # --- distance_learning_boys_3_5 ---  [refugee]
 # [From hh to hh. Distance learning boys aged 3-5
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.distance_learning_boys_3_5	 <- hh_dataset ...	sum (distance_learning_boys_3, distance_learning_boys_4_5)
 # }
 
 # --- distance_learning_girls_3_24 ---  [refugee]
 # [From hh to hh. Distance learning girls aged 3-24
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.distance_learning_girls_3_24	 <- hh_dataset ...	sum (distance_learning_girls_3, distance_learning_girls_4_5, distance_learning_girls_6_14, distance_learning_girls_15_18, distance_learning_girls_19_24)
 # }
 
 # --- distance_learning_boys_3_24 ---  [refugee]
 # [From hh to hh. Distance learning boys aged 3-24
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.distance_learning_boys_3_24	 <- hh_dataset ...	sum (distance_learning_boys_3, distance_learning_boys_4_5, distance_learning_boys_6_14, distance_learning_boys_15_18, distance_learning_boys_19_24)
 # }
 
 # --- distance_learning_girls_4_18 ---  [host]
 # [From hh to hh. Distance learning girls aged 4-18
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.distance_learning_girls_4_18	 <- hh_dataset ...	sum (distance_learning_girls_4_5, distance_learning_girls_6_14, distance_learning_girls_15_18)
 # }
 
 # --- distance_learning_boys_4_18 ---  [host]
 # [From hh to hh. Distance learning boys aged 4-18
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.distance_learning_boys_4_18	 <- hh_dataset ...	sum (distance_learning_boys_4_5, distance_learning_boys_6_14, distance_learning_boys_15_18)
 # }
 
@@ -704,19 +772,19 @@
 
 # --- distance_learning_girls_3_24_hh ---  [refugee]
 # [From hh to hh. HH with at least one girl aged 3-24 not in distance learning
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.distance_learning_girls_3_24_hh	 <- hh_dataset ...	Use distance learning fields against individual count fields to categorize 'all_in_distance_learning' (all girls aged 3-24 in HH in distance learning) and 'not_all_in_distance_learning' (at least one girl aged 3-24 in HH not in distance learning)
 # }
 
 # --- distance_learning_boys_3_24_hh ---  [refugee]
 # [From hh to hh. HH with at least one boy aged 3-24 not in distance learning
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.distance_learning_boys_3_24_hh	 <- hh_dataset ...	Use distance learning fields against individual count fields to categorize 'all_in_distance_learning' (all boys aged 3-24 in HH in distance learning) and 'not_all_in_distance_learning' (at least one boy aged 3-24 in HH not in distance learning)
 # }
 
 # --- distance_learning_children_3_24_hh ---  [refugee]
 # [From hh to hh. HH with at least one child aged 3-24 not in distance learning
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.distance_learning_children_3_24_hh	 <- hh_dataset ...	As above but for boys/girls together
 # }
 
@@ -734,19 +802,19 @@
 
 # --- distance_learning_girls_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one girl aged 4-18 not in distance learning
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.distance_learning_girls_4_18_hh	 <- hh_dataset ...	As above but different age range
 # }
 
 # --- distance_learning_boys_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one boy aged 4-18 not in distance learning
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.distance_learning_boys_4_18_hh	 <- hh_dataset ...	As above but different age range
 # }
 
 # --- distance_learning_children_4_18_hh ---  [host]
 # [From hh to hh. HH with at least child boy aged 4-18 not in distance learning
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.distance_learning_children_4_18_hh	 <- hh_dataset ...	As above but for boys/girls together
 # }
 
@@ -760,37 +828,37 @@
 
 # --- send_back_girls_3_5 ---  [refugee]
 # [From hh to hh. Send back girls aged 3-5
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.send_back_girls_3_5	 <- hh_dataset ...	sum (send_back_girls_3, send_back_girls_4_5)
 # }
 
 # --- send_back_boys_3_5 ---  [refugee]
 # [From hh to hh. Send back boys aged 3-5
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.send_back_boys_3_5	 <- hh_dataset ...	sum (send_back_boys_3, send_back_boys_4_5)
 # }
 
 # --- send_back_girls_3_24 ---  [refugee]
 # [From hh to hh. Send back girls aged 3-24
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.send_back_girls_3_24	 <- hh_dataset ...	sum (send_back_girls_3, send_back_girls_4_5, send_back_girls_6_14, send_back_girls_15_18, send_back_girls_19_24)
 # }
 
 # --- send_back_boys_3_24 ---  [refugee]
 # [From hh to hh. Send back boys aged 3-24
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.send_back_boys_3_24	 <- hh_dataset ...	sum (send_back_boys_3, send_back_boys_4_5, send_back_boys_6_14, send_back_boys_15_18, send_back_boys_19_24)
 # }
 
 # --- send_back_girls_4_18 ---  [host]
 # [From hh to hh. Send back girls aged 4-18
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.send_back_girls_4_18	 <- hh_dataset ...	sum (send_back_girls_4_5, send_back_girls_6_14, send_back_girls_15_18)
 # }
 
 # --- send_back_boys_4_18 ---  [host]
 # [From hh to hh. Send back boys aged 4-18
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.send_back_boys_4_18	 <- hh_dataset ...	sum (send_back_boys_4_5, send_back_boys_6_14, send_back_boys_15_18)
 # }
 
@@ -804,19 +872,19 @@
 
 # --- send_back_girls_3_24_hh ---  [refugee]
 # [From hh to hh. HH with at least one girl aged 3-24 that will not be sent back
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.send_back_girls_3_24_hh	 <- hh_dataset ...	Use send back fields against individual count fields to categorize 'all_in_send_back' (all girls aged 3-24 in HH in distance learning) and 'not_all_in_send_back' (at least one girl aged 3-24 in HH not in distance learning)
 # }
 
 # --- send_back_boys_3_24_hh ---  [refugee]
 # [From hh to hh. HH with at least one boy aged 3-24 that will not be sent back
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.send_back_boys_3_24_hh	 <- hh_dataset ...	Use send back fields against individual count fields to categorize 'all_in_send_back' (all boys aged 3-24 in HH in distance learning) and 'not_all_in_send_back' (at least one boy aged 3-24 in HH not in distance learning)
 # }
 
 # --- send_back_children_3_24_hh ---  [refugee]
 # [From hh to hh. HH with at least one child aged 3-24 that will not be sent back
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.send_back_children_3_24_hh	 <- hh_dataset ...	As above but for boys/girls together
 # }
 
@@ -834,19 +902,19 @@
 
 # --- send_back_girls_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one girl aged 4-18 that will not be sent back
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.send_back_girls_4_18_hh	 <- hh_dataset ...	As above but different age range
 # }
 
 # --- send_back_boys_4_18_hh ---  [host]
 # [From hh to hh. HH with at least one boy aged 4-18 that will not be sent back
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.send_back_boys_4_18_hh	 <- hh_dataset ...	As above but different age range
 # }
 
 # --- send_back_children_4_18_hh ---  [host]
 # [From hh to hh. HH with at least child boy aged 4-18 that will not be sent back
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.send_back_children_4_18_hh	 <- hh_dataset ...	As above but for boys/girls together
 # }
 
@@ -860,25 +928,25 @@
 
 # --- girl_3_5_count ---  [refugee]
 # [From hh to hh. Count girls aged 3-5
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.girl_3_5_count	 <- hh_dataset ...	sum (girl_3_count, girl_4_5_count)
 # }
 
 # --- boy_3_5_count ---  [refugee]
 # [From hh to hh. Count boys aged 3-5
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.boy_3_5_count	 <- hh_dataset ...	sum (boy_3_count, boy_4_5_count)
 # }
 
 # --- girl_3_24_count ---  [refugee]
 # [From hh to hh. Count girls aged 3-24
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.girl_3_24_count	 <- hh_dataset ...	sum (girl_3_count, girl_4_5_count, girl_6_14_count, girl_15_18_count, girl_19_24_count)
 # }
 
 # --- boy_3_24_count ---  [refugee]
 # [From hh to hh. Count boys aged 3-24
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.boy_3_24_count	 <- hh_dataset ...	sum (boy_3_count, boy_4_5_count, boy_6_14_count, boy_15_18_count, boy_19_24_count)
 # }
 
@@ -888,13 +956,13 @@
 
 # --- girl_4_18_count ---  [host]
 # [From hh to hh. Count girls aged 4-18
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.girl_4_18_count	 <- hh_dataset ...	sum ( girl_4_5_count, girl_6_14_count, girl_15_18_count)
 # }
 
 # --- boy_4_18_count ---  [host]
 # [From hh to hh. Count boys aged 4-18
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.boy_4_18_count	 <- hh_dataset ...	sum (boy_4_5_count, boy_6_14_count, boy_15_18_count)
 # }
 
@@ -1022,7 +1090,7 @@
 
 # --- child_nutrition_contact_any_hh ---  [refugee]
 # [From hh to hh. HH reporting that they received at least one type of nutrition service for their children
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.child_nutrition_contact_any_hh	 <- hh_dataset ...	if (at least 1 of the following == 'yes' - nutrition_messaging, muac_messaging, caregiver_muac_screening, received_bsfp - or i.child_screened_hh == 1 or i.child_nutrition_treatment_hh == 1, 1, 0)
 # }
 
@@ -1032,7 +1100,7 @@
 
 # --- child_nutrition_contact_any_hh ---  [host]
 # [From hh to hh. HH reporting that they received at least one type of nutrition service for their children
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.child_nutrition_contact_any_hh	 <- hh_dataset ...	if (at least 1 of the following == 'yes' - nutrition_messaging, muac_messaging, caregiver_muac_screening - or i.child_screened_hh == 1 or i.child_nutrition_treatment_hh == 1, 1, 0)
 # }
 
@@ -1058,7 +1126,7 @@
 
 # --- plw_treated_hh ---  [host]
 # [From hh to hh. HH with PLW that received targeted supplementary feeding
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.plw_treated_hh	 <- hh_dataset ...	if (plw_treated > 0, 1, 0)
 # }
 
@@ -1198,7 +1266,7 @@
 
 # --- government_benefits_amount ---  [host]
 # [From hh to hh. Per capita income by source
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.government_benefits_amount	 <- hh_dataset ...	government_benefits_amount / hh_size
 # }
 
@@ -1228,25 +1296,25 @@
 
 # --- income_total ---  [refugee]
 # [From hh to hh. Total per capita income
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.income_total	 <- hh_dataset ...	sum of all income source amounts / hh_size
 # }
 
 # --- income_minus_assistance ---  [refugee]
 # [From hh to hh. Total per capita income minus assistance
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.income_minus_assistance	 <- hh_dataset ...	sum of all income source amounts excluding assistance_amount / hh_size
 # }
 
 # --- income_total ---  [host]
 # [From hh to hh. Total per capita income
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.income_total	 <- hh_dataset ...	sum of all income source amounts / hh_size
 # }
 
 # --- income_minus_assistance ---  [host]
 # [From hh to hh. Total per capita income minus assistance
-# if(pop==host){
+# if(pop=="host"){
 #    	hh_dataset$i.income_minus_assistance	 <- hh_dataset ...	sum of all income source amounts excluding assistance_amount / hh_size
 # }
 
@@ -1581,13 +1649,13 @@
 
 # --- bathing_barriers_females ---  [refugee]
 # [From hh to hh. HH reporting at least one issue for females
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.bathing_barriers_females	 <- hh_dataset ...	if (bathing_barriers_females != 'no_problem' & bathing_barriers_females != 'dont_know', 1, 0)
 # }
 
 # --- bathing_barriers_males ---  [refugee]
 # [From hh to hh. HH reporting at least one issue for males
-# if(pop==refugee){
+# if(pop=="refugee"){
 #    	hh_dataset$i.bathing_barriers_males	 <- hh_dataset ...	if (bathing_barriers_males != 'no_problem' & bathing_barriers_males != 'dont_know', 1, 0)
 # }
 
